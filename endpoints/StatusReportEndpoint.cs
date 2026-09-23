@@ -34,7 +34,8 @@ public static class StatusReportEndpoint
             Ram = statusReportDto.Ram,
             Cpu = statusReportDto.Cpu,
             Gpu = statusReportDto.Gpu,
-            Temp = statusReportDto.Temp
+            Temp = statusReportDto.Temp,
+            CreatedAt = statusReportDto.CreatedAt ?? DateTime.UtcNow
         };
 
         db.StatusReports.Add(statusReport);
@@ -55,6 +56,7 @@ public static class StatusReportEndpoint
         existingStatusReport.Cpu = statusReport.Cpu;
         existingStatusReport.Gpu = statusReport.Gpu;
         existingStatusReport.Temp = statusReport.Temp;
+        existingStatusReport.CreatedAt = statusReport.CreatedAt;
 
         await db.SaveChangesAsync();
         return Results.NoContent();
