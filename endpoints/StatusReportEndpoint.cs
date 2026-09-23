@@ -10,6 +10,7 @@ public static class StatusReportEndpoint
         statusReportGroup.MapGet("/", GetTodos);
         statusReportGroup.MapGet("/{id}", GetById);
         statusReportGroup.MapPost("/", Create);
+        statusReportGroup.MapPost("/batch", CreateBatch);
         statusReportGroup.MapPut("/{id}", Update);
         statusReportGroup.MapDelete("/{id}", Delete);
     }
@@ -41,6 +42,23 @@ public static class StatusReportEndpoint
         db.StatusReports.Add(statusReport);
         await db.SaveChangesAsync();
         return Results.Created($"/statusreport/{statusReport.Id}", statusReport);
+    }
+
+    private static async Task<IResult> CreateBatch(BatchStatusReportDto batchStatusReportDto, AppDbContext db)
+    {
+        var statusReports = batchStatusReportDto.StatusReports.Select(dto => new StatusReport
+        {
+            PcId = dto.PcId,
+            Ram = dto.Ram,
+            Cpu = dto.Cpu,
+            Gpu = dto.Gpu,
+            Temp = dto.Temp,
+            CreatedAt = dto.CreatedAt ?? DateTime.UtcNow
+        }).ToList();
+
+        await db.StatusReports.AddRangeAsync(statusReports);
+        await db.SaveChangesAsync();
+        return Results.Created("/statusreport/batch", statusReports);
     }
 
     private static async Task<IResult> Update(int id, StatusReport statusReport, AppDbContext db)

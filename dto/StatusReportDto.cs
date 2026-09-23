@@ -8,3 +8,8 @@ public record CreateStatusReportDto
     public float Temp {get; set;}
     public DateTime? CreatedAt {get; set;} = DateTime.UtcNow;
 }
+
+public record BatchStatusReportDto
+{
+    public List<CreateStatusReportDto> StatusReports {get; set;} = new List<CreateStatusReportDto>();
+}
