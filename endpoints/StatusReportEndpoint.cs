@@ -56,6 +56,15 @@ public static class StatusReportEndpoint
             CreatedAt = dto.CreatedAt ?? DateTime.UtcNow
         }).ToList();
 
+        if (statusReports.Count > 500)
+        {
+            return Results.BadRequest("Batch size exceeds the limit of 500 status reports.");
+        }
+        else if (statusReports.Count == 0)
+        {
+            return Results.BadRequest("Batch is empty. Please provide at least one status report.");
+        }
+
         await db.StatusReports.AddRangeAsync(statusReports);
         await db.SaveChangesAsync();
         return Results.Created("/statusreport/batch", statusReports);
