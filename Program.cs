@@ -22,5 +22,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapStatusReportEndpoint();
+app.MapClientComputerEndpoints();
 
 app.Run();
