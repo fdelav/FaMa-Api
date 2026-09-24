@@ -67,7 +67,7 @@ public static class ClientComputerEndpoints
         var result = new EnrollResponseDto
         {
             Id = clientComputer.Id,
-            LastEnrollment = clientComputer.LastEnrollment,
+            usageCode = usageCode,
             LastStatusReport = clientComputer.LastStatusReport,
             Message = $"Client computer enrolled successfully. Usage code: {usageCode}. It will expire at {codeExpiration} UTC."
         };

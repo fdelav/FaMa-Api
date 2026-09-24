@@ -17,7 +17,7 @@ public record UpdateClientComputerDto
 public record EnrollResponseDto
 {
     public int Id {get; set;}
-    public DateTime LastEnrollment {get; set;} = DateTime.UtcNow;
+    public string usageCode {get; set;} = string.Empty;
     public DateTime LastStatusReport {get; set;} = DateTime.UtcNow;
     public string Message {get; set;} = string.Empty;
 }
