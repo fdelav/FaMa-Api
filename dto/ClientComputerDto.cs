@@ -18,7 +18,7 @@ public record EnrollResponseDto
 {
     public int Id {get; set;}
     public string usageCode {get; set;} = string.Empty;
-    public DateTime LastStatusReport {get; set;} = DateTime.UtcNow;
+    public DateTime usageCodeExpiration {get; set;} = DateTime.UtcNow;
     public string Message {get; set;} = string.Empty;
 }
 

@@ -68,7 +68,7 @@ public static class ClientComputerEndpoints
         {
             Id = clientComputer.Id,
             usageCode = usageCode,
-            LastStatusReport = clientComputer.LastStatusReport,
+            usageCodeExpiration = codeExpiration,
             Message = $"Client computer enrolled successfully. Usage code: {usageCode}. It will expire at {codeExpiration} UTC."
         };
 
