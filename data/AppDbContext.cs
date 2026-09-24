@@ -5,4 +5,5 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 
     public DbSet<StatusReport> StatusReports => Set<StatusReport>();
+    public DbSet<ClientComputer> ClientComputers => Set<ClientComputer>();
 }
