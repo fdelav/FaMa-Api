@@ -13,3 +13,17 @@ public record UpdateClientComputerDto
     public string IpAddress {get; set;} = string.Empty;
     public string MacAddress {get; set;} = string.Empty;
 }
+
+public record EnrollResponseDto
+{
+    public int Id {get; set;}
+    public DateTime LastEnrollment {get; set;} = DateTime.UtcNow;
+    public DateTime LastStatusReport {get; set;} = DateTime.UtcNow;
+    public string Message {get; set;} = string.Empty;
+}
+
+public record ConfirmEnrollmentDto
+{
+    public int ClientId {get; set;} = 0;
+    public string UsageCode {get; set;} = string.Empty;
+}

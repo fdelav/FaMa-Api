@@ -8,4 +8,8 @@ public class ClientComputer
     public DateTime LastEnrollment {get; set;} = DateTime.UtcNow;
     public DateTime LastStatusReport {get; set;} = DateTime.UtcNow;
     public int Status {get; set;} = 0;
+
+    public Guid? ReportApiKey {get; set;}
+    public string? usageCode {get; set;}
+    public DateTime? usageCodeExpiration {get; set;}    
 }
