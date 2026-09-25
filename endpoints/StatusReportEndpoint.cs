@@ -1,18 +1,22 @@
 using Microsoft.EntityFrameworkCore;
 using FaMaApi.Dtos;
+using FaMaApi.Filters;
 
 public static class StatusReportEndpoint
 {
     public static void MapStatusReportEndpoint(this IEndpointRouteBuilder app)
     {
-        var statusReportGroup = app.MapGroup("/statusreport");
+        var agentGroup = app.MapGroup("/agent/statusreport").RequireApiKey();
 
-        statusReportGroup.MapGet("/", GetTodos);
-        statusReportGroup.MapGet("/{id}", GetById);
-        statusReportGroup.MapPost("/", Create);
-        statusReportGroup.MapPost("/batch", CreateBatch);
-        statusReportGroup.MapPut("/{id}", Update);
-        statusReportGroup.MapDelete("/{id}", Delete);
+        agentGroup.MapPost("/", Create);
+        agentGroup.MapPost("/batch", CreateBatch);
+
+        var adminGroup = app.MapGroup("/admin/statusreport");
+
+        adminGroup.MapGet("/", GetTodos);
+        adminGroup.MapGet("/{id}", GetById);
+        adminGroup.MapPut("/{id}", Update);
+        adminGroup.MapDelete("/{id}", Delete);
     }
 
     private static async Task<IResult> GetTodos(AppDbContext db)
