@@ -17,13 +17,39 @@ public static class ClientComputerEndpoints
 
     private static async Task<IResult> GetClientComputers(AppDbContext db)
     {
-        var clientComputers = await db.ClientComputers.ToListAsync();
+        var clientComputers = await db.ClientComputers
+            .Select(clientComputer => new GetClientComputerDto
+            {
+                Id = clientComputer.Id,
+                HostName = clientComputer.HostName,
+                IpAddress = clientComputer.IpAddress,
+                MacAddress = clientComputer.MacAddress,
+                Uuid = clientComputer.Uuid,
+                Location = clientComputer.Location,
+                LastEnrollment = clientComputer.LastEnrollment,
+                LastStatusReport = clientComputer.LastStatusReport,
+                Status = clientComputer.Status
+            })
+            .ToListAsync();
         return Results.Ok(clientComputers);
     }
 
     private static async Task<IResult> GetById(int id, AppDbContext db)
     {
-        var clientComputer = await db.ClientComputers.FindAsync(id);
+        var clientComputer = await db.ClientComputers.Where(c => c.Id == id)
+            .Select(clientComputer => new GetClientComputerDto
+            {
+                Id = clientComputer.Id,
+                HostName = clientComputer.HostName,
+                IpAddress = clientComputer.IpAddress,
+                MacAddress = clientComputer.MacAddress,
+                Uuid = clientComputer.Uuid,
+                Location = clientComputer.Location,
+                LastEnrollment = clientComputer.LastEnrollment,
+                LastStatusReport = clientComputer.LastStatusReport,
+                Status = clientComputer.Status
+            })
+            .FirstOrDefaultAsync();
         return clientComputer != null ? Results.Ok(clientComputer) : Results.NotFound();
     }
 
