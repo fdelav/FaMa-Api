@@ -14,4 +14,5 @@ public class ClientStatistics
 
 	public double TempMean { get; set; } = 0;
 	public double TempMax { get; set; } = 0;
+	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
