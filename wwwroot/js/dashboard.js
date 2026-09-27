@@ -1,7 +1,7 @@
 // ---- Configuración Backend (API C#) ----
 // Si frontend y backend están en servidores o puertos distintos en desarrollo, coloca 'http://localhost:5000'
 // Si el frontend lo sirve el propio backend, deja API_BASE_URL en ''
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = '';
 
 const ENDPOINTS = {
   adminStatusReport: `${API_BASE_URL}/admin/statusreport`,
