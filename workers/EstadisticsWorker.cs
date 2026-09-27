@@ -66,25 +66,24 @@ public class EstadisticasWorker : BackgroundService
 
                     foreach (var stat in estadisticsPerPc)
                     {
-                            var newStatus = EvaluatedComputerStatus(stat);
+                        var newStatus = EvaluatedComputerStatus(stat);
 
-                            if (clientComputers.TryGetValue(stat.PcId, out var clientComputer))
+                        if (clientComputers.TryGetValue(stat.PcId, out var clientComputer))
+                        {
+                            if ((ComputerStatus)clientComputer.Status != newStatus)
                             {
-                                if ((ComputerStatus)clientComputer.Status != newStatus)
-                                {
-                                    _logger.LogWarning("Cambio de estado en ClientComputer {PcId}: {EstadoAnterior} -> {NuevoEstado}", 
-                                        clientComputer.Id, clientComputer.Status, newStatus);
+                                _logger.LogWarning("Cambio de estado en ClientComputer {PcId}: {EstadoAnterior} -> {NuevoEstado}", 
+                                    clientComputer.Id, clientComputer.Status, newStatus);
 
-                                    clientComputer.Status = (int)newStatus;
-                                }
+                                clientComputer.Status = (int)newStatus;
                             }
+                        }
                         
-                        // 4. Guardar inserciones de estadísticas y actualizaciones de estado en una sola transacción
-                        await dbContext.ClientStatistics.AddRangeAsync(estadisticsPerPc, stoppingToken);
-                        await dbContext.SaveChangesAsync(stoppingToken);
-
-                        _logger.LogInformation("Métricas e historial de estado guardados para {Count} equipos.", estadisticsPerPc.Count);
                     }
+                    await dbContext.ClientStatistics.AddRangeAsync(estadisticsPerPc, stoppingToken);
+                    await dbContext.SaveChangesAsync(stoppingToken);
+
+                    _logger.LogInformation("Métricas e historial de estado guardados para {Count} equipos.", estadisticsPerPc.Count);
                 }
             }
             catch (Exception ex)
