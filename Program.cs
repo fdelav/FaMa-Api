@@ -26,5 +26,6 @@ app.UseHttpsRedirection();
 app.MapStatusReportEndpoint();
 app.MapClientComputerEndpoints();
 app.MapClientStatisticsEndpoint();
+app.MapNotificationEndpoints();
 
 app.Run();

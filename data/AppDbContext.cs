@@ -7,4 +7,5 @@ public class AppDbContext : DbContext
     public DbSet<StatusReport> StatusReports => Set<StatusReport>();
     public DbSet<ClientComputer> ClientComputers => Set<ClientComputer>();
     public DbSet<ClientStatistics> ClientStatistics => Set<ClientStatistics>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 }
