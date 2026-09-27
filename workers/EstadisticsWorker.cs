@@ -7,7 +7,7 @@ public class EstadisticasWorker : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<EstadisticasWorker> _logger;
-    private readonly TimeSpan _periodo = TimeSpan.FromSeconds(5); // Frecuencia de ejecución
+    private readonly TimeSpan _periodo = TimeSpan.FromMinutes(5); // Frecuencia de ejecución
 
     public EstadisticasWorker(IServiceScopeFactory scopeFactory, ILogger<EstadisticasWorker> logger)
     {
@@ -32,7 +32,7 @@ public class EstadisticasWorker : BackgroundService
                     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
 
-                    var timeStamp = DateTime.UtcNow.AddSeconds(-5);
+                    var timeStamp = DateTime.UtcNow.AddMinutes(-5);
 
     
                     var estadisticsPerPc = await dbContext.StatusReports
@@ -51,16 +51,39 @@ public class EstadisticasWorker : BackgroundService
                         })
                         .ToListAsync(stoppingToken);
 
-                    if (estadisticsPerPc.Any())
+                    if (!estadisticsPerPc.Any())
                     {
+                        continue;
+                    }
+
+                    // 2. Traer en memoria las entidades de ClientComputer involucradas
+                    var pcIds = estadisticsPerPc.Select(x => x.PcId).ToList();
+                    var clientComputers = await dbContext.ClientComputers
+                        .Where(c => pcIds.Contains(c.Id))
+                        .ToDictionaryAsync(c => c.Id, stoppingToken);
+
+
+
+                    foreach (var stat in estadisticsPerPc)
+                    {
+                            var newStatus = EvaluatedComputerStatus(stat);
+
+                            if (clientComputers.TryGetValue(stat.PcId, out var clientComputer))
+                            {
+                                if ((ComputerStatus)clientComputer.Status != newStatus)
+                                {
+                                    _logger.LogWarning("Cambio de estado en ClientComputer {PcId}: {EstadoAnterior} -> {NuevoEstado}", 
+                                        clientComputer.Id, clientComputer.Status, newStatus);
+
+                                    clientComputer.Status = (int)newStatus;
+                                }
+                            }
+                        
+                        // 4. Guardar inserciones de estadísticas y actualizaciones de estado en una sola transacción
                         await dbContext.ClientStatistics.AddRangeAsync(estadisticsPerPc, stoppingToken);
                         await dbContext.SaveChangesAsync(stoppingToken);
 
-                        _logger.LogInformation("Se guardaron estadísticas para {count} equipos correctamente.", estadisticsPerPc.Count);
-                    }
-                    else
-                    {
-                        _logger.LogInformation("No se encontraron reportes para procesar.");
+                        _logger.LogInformation("Métricas e historial de estado guardados para {Count} equipos.", estadisticsPerPc.Count);
                     }
                 }
             }
@@ -69,5 +92,19 @@ public class EstadisticasWorker : BackgroundService
                 _logger.LogError(ex, "Ocurrió un error al recolectar las estadísticas.");
             }
         }
+    }
+    private ComputerStatus EvaluatedComputerStatus(ClientStatistics stats)
+    {
+        if (stats.TempMax >= 85.0 || stats.CpuMax >= 98.0 || stats.RamMean >= 95.0)
+        {
+            return ComputerStatus.Critical;
+        }
+
+        if (stats.TempMean >= 75.0 || stats.CpuMean >= 80.0 || stats.RamMean >= 85.0)
+        {
+            return ComputerStatus.NeedMaintenance;
+        }
+
+        return ComputerStatus.Online;
     }
 }
