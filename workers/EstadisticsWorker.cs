@@ -97,7 +97,7 @@ public class EstadisticasWorker : BackgroundService
 
                     if (newNotifications.Any())
                     {
-                        await dbContext.Set<Notification>().AddRangeAsync(newNotifications, stoppingToken); 
+                        await dbContext.Notifications.AddRangeAsync(newNotifications, stoppingToken); 
                         await dbContext.SaveChangesAsync(stoppingToken);
                         _logger.LogInformation("Se han creado {Count} nuevas notificaciones de estado crítico.", newNotifications.Count);
                     }
