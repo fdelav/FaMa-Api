@@ -43,6 +43,13 @@ public static class StatusReportEndpoint
             CreatedAt = statusReportDto.CreatedAt ?? DateTime.UtcNow
         };
 
+        // Update the Pc's LastStatusReportTime
+        var pc = await db.ClientComputers.FindAsync(statusReport.PcId);
+        if (pc != null)
+        {
+            pc.LastStatusReport = statusReport.CreatedAt;
+        }
+
         db.StatusReports.Add(statusReport);
         await db.SaveChangesAsync();
         return Results.Created($"/statusreport/{statusReport.Id}", statusReport);
@@ -67,6 +74,16 @@ public static class StatusReportEndpoint
         else if (statusReports.Count == 0)
         {
             return Results.BadRequest("Batch is empty. Please provide at least one status report.");
+        }
+
+        // Update the Pc's LastStatusReportTime for each report
+        foreach (var statusReport in statusReports)
+        {
+            var pc = await db.ClientComputers.FindAsync(statusReport.PcId);
+            if (pc != null)
+            {
+                pc.LastStatusReport = statusReport.CreatedAt;
+            }
         }
 
         await db.StatusReports.AddRangeAsync(statusReports);
