@@ -10,6 +10,8 @@ builder.Services.AddOpenApi();
 var conectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(conectionString));
 
+builder.Services.AddHostedService<EstadisticasWorker>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
