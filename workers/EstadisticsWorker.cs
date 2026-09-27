@@ -63,7 +63,7 @@ public class EstadisticasWorker : BackgroundService
                         .Where(c => pcIds.Contains(c.Id))
                         .ToDictionaryAsync(c => c.Id, stoppingToken);
 
-
+                    var newNotifications = new List<Notification>();
 
                     foreach (var stat in estadisticsPerPc)
                     {
@@ -77,12 +77,30 @@ public class EstadisticasWorker : BackgroundService
                                     clientComputer.Id, clientComputer.Status, newStatus);
 
                                 clientComputer.Status = (int)newStatus;
+
+                                if (newStatus == ComputerStatus.Critical)
+                            {
+                                newNotifications.Add(new Notification
+                                {
+                                    PcId = clientComputer.Id,
+                                    Type = "HardwareAlert",
+                                    Message = $"El equipo {clientComputer.HostName} entró en estado CRÍTICO (Temp Max: {stat.TempMax:F1}°C, CPU Max: {stat.CpuMax:F1}%).",
+                                    CreatedAt = DateTime.UtcNow
+                                });
+                            }
                             }
                         }
                         
                     }
                     await dbContext.ClientStatistics.AddRangeAsync(estadisticsPerPc, stoppingToken);
                     await dbContext.SaveChangesAsync(stoppingToken);
+
+                    if (newNotifications.Any())
+                    {
+                        await dbContext.Set<Notification>().AddRangeAsync(newNotifications, stoppingToken); 
+                        await dbContext.SaveChangesAsync(stoppingToken);
+                        _logger.LogInformation("Se han creado {Count} nuevas notificaciones de estado crítico.", newNotifications.Count);
+                    }
 
                     _logger.LogInformation("Métricas e historial de estado guardados para {Count} equipos.", estadisticsPerPc.Count);
                 }
