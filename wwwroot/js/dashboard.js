@@ -13,9 +13,10 @@ const ENDPOINTS = {
 const MAPA_ESTADOS = {
   0: { clave: 'plantilla', color: 'var(--panel-border)' }, // 0: No enrolado / Plantilla
   1: { clave: 'ok',        color: 'var(--ok)' },           // 1: Online / Saludable
-  2: { clave: 'warn',      color: 'var(--warn)' },         // 2: Advertencia
-  3: { clave: 'crit',      color: 'var(--crit)' },         // 3: Crítico
-  4: { clave: 'offline',   color: 'var(--offline)' }       // 4: Desconectado
+  2: { clave: 'offline',   color: 'var(--offline)' },       // 2: Offline
+  3: { clave: 'warn',      color: 'var(--warn)' },         // 3: Advertencia
+  4: { clave: 'crit',      color: 'var(--crit)' },         // 4: Crítico
+  
 };
 
 // Mapeo de severidad de NotificationDto.Type -> CSS
