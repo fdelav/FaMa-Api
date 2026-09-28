@@ -174,7 +174,20 @@ function renderEquipos(equipos, reportes) {
     let vistoText = 'Aún no enrolado';
     if (!esPlantilla && lastReporteFecha) {
       const fecha = new Date(lastReporteFecha);
-      vistoText = `Reportó: ${fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
+      const haceMasDeUnDia = Date.now() - fecha.getTime() > 24 * 60 * 60 * 1000;
+      if (!haceMasDeUnDia) {
+        vistoText = `Reportó: ${fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
+      } else {
+        const ayer = new Date();
+        ayer.setDate(ayer.getDate() - 1);
+        const esAyer = fecha.getFullYear() === ayer.getFullYear()
+          && fecha.getMonth() === ayer.getMonth()
+          && fecha.getDate() === ayer.getDate();
+        const fechaText = esAyer
+          ? 'Ayer'
+          : fecha.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        vistoText = `Reportó: ${fechaText}`;
+      }
     }
 
     return `
