@@ -29,6 +29,17 @@ public static class UserFormEndpoint
         };
 
         db.UserForms.Add(userForm);
+
+        // Create a new notification for the admin
+        var notification = new Notification
+        {
+            Message = $"New user form submitted by {userForm.Email}.",
+            CreatedAt = DateTime.UtcNow,
+            Type = "Warning",
+            IsRead = 0
+        };
+        
+        db.Notifications.Add(notification);
         await db.SaveChangesAsync();
         return Results.Created($"/userform/{userForm.Id}", userForm);
     }
