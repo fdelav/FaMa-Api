@@ -1,4 +1,3 @@
-namespace FaMaApi.dto;
 
 public record CreateUserFormDto
 {

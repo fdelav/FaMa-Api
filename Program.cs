@@ -22,11 +22,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-//app.UseCors("AllowAll"); //Borrar al añadir wwwroot
+
 app.MapStatusReportEndpoint();
 app.MapClientComputerEndpoints();
 app.MapClientStatisticsEndpoint();
 app.MapNotificationEndpoints();
+app.MapUserFormEndpoint();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
