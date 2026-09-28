@@ -11,6 +11,7 @@ var conectionString = builder.Configuration.GetConnectionString("DefaultConnecti
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(conectionString));
 
 builder.Services.AddHostedService<EstadisticasWorker>();
+builder.Services.AddHostedService<InactiveComputerMonitorWorker>();
 
 var app = builder.Build();
 

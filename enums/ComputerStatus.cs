@@ -2,7 +2,7 @@ public enum ComputerStatus
 {
     NoEnrolled = 0,
     Online = 1,
-    Ofline = 2,
+    Offline = 2,
     NeedMaintenance = 3,
     Critical = 4
 }
