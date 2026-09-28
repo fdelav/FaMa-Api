@@ -71,7 +71,7 @@ public class EstadisticasWorker : BackgroundService
 
                         if (clientComputers.TryGetValue(stat.PcId, out var clientComputer))
                         {
-                            if ((ComputerStatus)clientComputer.Status != newStatus)
+                            if ((ComputerStatus)clientComputer.Status != newStatus && clientComputer.Status != (int)ComputerStatus.Offline)
                             {
                                 _logger.LogWarning("Cambio de estado en ClientComputer {PcId}: {EstadoAnterior} -> {NuevoEstado}", 
                                     clientComputer.Id, clientComputer.Status, newStatus);
