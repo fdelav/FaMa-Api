@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Reporte de equipos en mal estado</title>
+    <link rel="stylesheet" href="../css/styles_form.css">
+</head>
+
+<body>
+    <main>
+        <h1>Reporte de equipos en mal estado</h1>
+        <p class="sub">Registra los equipos con fallas para que se puedan revisar y reparar.</p>
+
+        <!-- Formulario -->
+        <section class="card">
+            <h2>Nuevo reporte</h2>
+            <div class="grid">
+                <div>
+                    <label for="email">Correo electrónico *</label>
+                    <input id="email" type="email" placeholder="nombre@correo.com">
+                </div>
+                <div>
+                    <label for="location">Ubicación</label>
+                    <input id="location" readonly>
+                </div>
+                <div>
+                    <label for="pccode">Equipo</label>
+                    <input id="pccode" readonly>
+                </div>
+                <div>
+                    <label for="ticket">Tipo de problema *</label>
+                    <select id="ticket">
+                        <option value="">Seleccionar…</option>
+                        <option>Equipo desconectado</option>
+                        <option>No enciende</option>
+                        <option>No funciona el sistema operativo</option>
+                        <option>Ratón dañado</option>
+                        <option>Teclado dañado</option>
+                        <option>Sin conexión a internet</option>
+                        <option>Otros</option>
+                    </select>
+                </div>
+                <div class="full">
+                    <label for="description">Descripción del problema *</label>
+                    <textarea id="description"></textarea>
+                </div>
+            </div>
+            <input id="idpc" type="hidden">
+            <p>
+                <button class="p" id="enviar">Enviar reporte</button>
+                <span id="fb" class="msg"></span>
+            </p>
+        </section>
+    </main>
+
+    <script src="../js/script_form.js"></script>
+</body>
+
+</html>

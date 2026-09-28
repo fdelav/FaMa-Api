@@ -1,0 +1,152 @@
+:root {
+    --bg: #f5f6f8;
+    --card: #fff;
+    --tx: #1c2430;
+    --mut: #66707d;
+    --bd: #d9dee5;
+    --ac: #c2410c;
+    --ok: #15803d;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top,0px);
+    padding-bottom: env(safe-area-inset-bottom,0px);
+}
+
+@media (prefers-color-scheme:dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #14181e;
+        --card: #1e242c;
+        --tx: #e8ebef;
+        --mut: #98a2af;
+        --bd: #333c47;
+        --ac: #fb923c;
+        --ok: #4ade80;
+    }
+}
+
+:root[data-theme="dark"] {
+    --bg: #14181e;
+    --card: #1e242c;
+    --tx: #e8ebef;
+    --mut: #98a2af;
+    --bd: #333c47;
+    --ac: #fb923c;
+    --ok: #4ade80;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-padding-top: env(safe-area-inset-top,0px);
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--tx);
+    font: 15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+
+main {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+}
+
+h1 {
+    font-size: 1.4rem;
+    margin: 0 0 4px;
+}
+
+h2 {
+    font-size: 1.05rem;
+    margin: 0 0 12px;
+}
+
+.sub {
+    color: var(--mut);
+    margin: 0 0 18px;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--bd);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 18px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media(max-width:600px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+label {
+    display: block;
+    font-size: .85rem;
+    color: var(--mut);
+    margin-bottom: 4px;
+}
+
+input,select,textarea {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--bd);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--tx);
+    font: inherit;
+}
+
+textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
+.full {
+    grid-column: 1/-1;
+}
+
+button {
+    font: inherit;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid var(--bd);
+    background: var(--card);
+    color: var(--tx);
+    padding: 9px 16px;
+}
+
+button.p {
+    background: var(--ac);
+    border-color: var(--ac);
+    color: #fff;
+    font-weight: 600;
+}
+
+.msg {
+    margin-left: 10px;
+    color: var(--ok);
+}
+
+.err {
+    color: #dc2626;
+}
+
+input[readonly] {
+    opacity: .7;
+    cursor: not-allowed;
+}
+
+button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
