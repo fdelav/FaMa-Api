@@ -100,7 +100,7 @@ function renderNotificaciones(notificaciones) {
   contenedor.innerHTML = notificaciones.map(n => {
     const rawType = (n.type || n.Type || 'info').toLowerCase();
     const nivelClase = MAPA_TIPO_NOTIF[rawType] || 'ok';
-    const color = MAPA_ESTADOS[nivelClase === 'ok' ? 1 : nivelClase === 'warn' ? 2 : 3]?.color || 'var(--ok)';
+    const color = MAPA_ESTADOS[nivelClase === 'ok' ? 1 : nivelClase === 'warn' ? 3 : 3]?.color || 'var(--ok)';
     
     const mensaje = n.message || n.Message || 'Sin mensaje';
     const rawFecha = n.createdAt || n.CreatedAt;
