@@ -8,4 +8,5 @@ public class AppDbContext : DbContext
     public DbSet<ClientComputer> ClientComputers => Set<ClientComputer>();
     public DbSet<ClientStatistics> ClientStatistics => Set<ClientStatistics>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<UserForm> UserForms => Set<UserForm>();
 }
