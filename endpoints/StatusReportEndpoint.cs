@@ -48,6 +48,10 @@ public static class StatusReportEndpoint
         if (pc != null)
         {
             pc.LastStatusReport = statusReport.CreatedAt;
+            if (pc.Status == (int)ComputerStatus.Offline)
+            {
+                pc.Status = (int)ComputerStatus.Online;
+            }
         }
 
         db.StatusReports.Add(statusReport);
@@ -83,6 +87,10 @@ public static class StatusReportEndpoint
             if (pc != null)
             {
                 pc.LastStatusReport = statusReport.CreatedAt;
+                if (pc.Status == (int)ComputerStatus.Offline)
+                {
+                    pc.Status = (int)ComputerStatus.Online;
+                }
             }
         }
 
