@@ -79,6 +79,7 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 0.75rem;
     padding: 0.9rem;
+    min-height: 490px;
   }
   @media (max-width: 991px) { .equipos-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 575px) { .equipos-grid { grid-template-columns: 1fr; } }
@@ -89,6 +90,7 @@
     border-left: 3px solid var(--offline);
     border-radius: 3px;
     padding: 0.7rem 0.8rem;
+    min-height: 120px;
   }
   .equipo.ok { border-left-color: var(--ok); }
   .equipo.warn { border-left-color: var(--warn); }
