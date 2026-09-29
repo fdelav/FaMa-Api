@@ -90,7 +90,7 @@
     border-left: 3px solid var(--offline);
     border-radius: 3px;
     padding: 0.7rem 0.8rem;
-    min-height: 120px;
+    max-height: 120px;
   }
   .equipo.ok { border-left-color: var(--ok); }
   .equipo.warn { border-left-color: var(--warn); }
