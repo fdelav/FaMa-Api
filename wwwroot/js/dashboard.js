@@ -12,11 +12,14 @@ const ENDPOINTS = {
 // Mapeo de enums numéricos de Status
 const MAPA_ESTADOS = {
   0: { clave: 'plantilla', color: 'var(--panel-border)' }, // 0: No enrolado / Plantilla
-  1: { clave: 'ok',        color: 'var(--ok)' },           // 1: Online / Saludable
-  2: { clave: 'offline',   color: 'var(--offline)' },       // 2: Offline
-  3: { clave: 'warn',      color: 'var(--warn)' },         // 3: Advertencia
-  4: { clave: 'crit',      color: 'var(--crit)' },         // 4: Crítico
-  
+  1: { clave: 'Online',        color: 'var(--ok)' },           // 1: Online / Saludable
+  2: { clave: 'offline',   color: 'var(--offline)' },       // 2: Offline  
+};
+
+const MAPA_SALUD = {
+  1: { clave: 'ok',          color: 'var(--ok)' },           // 1: Saludable
+  2: { clave: 'warn',        color: 'var(--warn)' },         // 2: Advertencia
+  3: { clave: 'crit',        color: 'var(--crit)' }          // 3: Crítico
 };
 
 // Mapeo de severidad de NotificationDto.Type -> CSS
@@ -157,6 +160,7 @@ function renderEquipos(equipos, reportes) {
 
     // Estado visual y color
     const infoEstado = MAPA_ESTADOS[status] || MAPA_ESTADOS[4];
+    const infoSalud = MAPA_SALUD[1];
     const esPlantilla = status === 0 || hostName.trim() === '';
 
     // Obtener las métricas actuales desde el StatusReport vinculado
@@ -191,10 +195,10 @@ function renderEquipos(equipos, reportes) {
     }
 
     return `
-      <div class="equipo ${infoEstado.clave}">
+      <div class="equipo ${infoEstado.clave} ${infoSalud.clave}">
         <div class="fila-superior">
           <span class="host mono" title="IP: ${e.ipAddress || e.IpAddress || 'N/A'} | MAC: ${e.macAddress || e.MacAddress || 'N/A'}">${host}</span>
-          <span class="estado-dot" style="background:${infoEstado.color}"></span>
+          <span class="estado-dot" style="background:${infoSalud.color}"></span>
         </div>
         <div class="metricas">
           <div>CPU<span class="num mono">${cpuStr}</span></div>
