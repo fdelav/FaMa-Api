@@ -48,9 +48,9 @@ public static class StatusReportEndpoint
         if (pc != null)
         {
             pc.LastStatusReport = statusReport.CreatedAt;
-            if (pc.Status == (int)ComputerStatus.Offline)
+            if (pc.Status == ComputerStatus.Offline)
             {
-                pc.Status = (int)ComputerStatus.Online;
+                pc.Status = ComputerStatus.Online;
             }
         }
 
@@ -87,9 +87,9 @@ public static class StatusReportEndpoint
             if (pc != null)
             {
                 pc.LastStatusReport = statusReport.CreatedAt;
-                if (pc.Status == (int)ComputerStatus.Offline)
+                if (pc.Status == ComputerStatus.Offline)
                 {
-                    pc.Status = (int)ComputerStatus.Online;
+                    pc.Status = ComputerStatus.Online;
                 }
             }
         }
