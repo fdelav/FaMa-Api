@@ -95,6 +95,8 @@
   .equipo.ok { border-left-color: var(--ok); }
   .equipo.warn { border-left-color: var(--warn); }
   .equipo.crit { border-left-color: var(--crit); }
+  .equipo.online { opacity: 1; }
+  .equipo.offline { opacity: 0.55; }
   .equipo.plantilla { border-left-style: dashed; opacity: 0.55; }
 
   .equipo .fila-superior { display: flex; justify-content: space-between; align-items: center; }

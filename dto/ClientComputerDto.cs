@@ -38,6 +38,5 @@ public record GetClientComputerDto
     public string? Location {get; set;}
     public DateTime LastEnrollment {get; set;} = DateTime.UtcNow;
     public DateTime LastStatusReport {get; set;} = DateTime.UtcNow;
-    public int Status {get; set;} = 0;
-
+    public ComputerStatus Status {get; set;} = ComputerStatus.NoEnrolled;
 }

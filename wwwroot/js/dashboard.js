@@ -5,6 +5,7 @@ const API_BASE_URL = '';
 
 const ENDPOINTS = {
   adminStatusReport: `${API_BASE_URL}/admin/statusreport`,
+  clientStadistics: `${API_BASE_URL}/admin/clientstatistics`,
   notifications: `${API_BASE_URL}/api/notifications`,
   clientComputers: `${API_BASE_URL}/clientcomputer`
 };
@@ -12,11 +13,14 @@ const ENDPOINTS = {
 // Mapeo de enums numéricos de Status
 const MAPA_ESTADOS = {
   0: { clave: 'plantilla', color: 'var(--panel-border)' }, // 0: No enrolado / Plantilla
-  1: { clave: 'ok',        color: 'var(--ok)' },           // 1: Online / Saludable
-  2: { clave: 'offline',   color: 'var(--offline)' },       // 2: Offline
-  3: { clave: 'warn',      color: 'var(--warn)' },         // 3: Advertencia
-  4: { clave: 'crit',      color: 'var(--crit)' },         // 4: Crítico
-  
+  1: { clave: 'Online',        color: 'var(--ok)' },           // 1: Online / Saludable
+  2: { clave: 'offline',   color: 'var(--offline)' },       // 2: Offline  
+};
+
+const MAPA_SALUD = {
+  1: { clave: 'ok',          color: 'var(--ok)' },           // 1: Saludable
+  2: { clave: 'warn',        color: 'var(--warn)' },         // 2: Advertencia
+  3: { clave: 'crit',        color: 'var(--crit)' }          // 3: Crítico
 };
 
 // Mapeo de severidad de NotificationDto.Type -> CSS
@@ -123,7 +127,7 @@ function renderNotificaciones(notificaciones) {
 /**
  * Renderiza la grilla vinculando GetClientComputerDto con StatusReport por PcId
  */
-function renderEquipos(equipos, reportes) {
+function renderEquipos(equipos, reportes, estadisticas) {
   const contenedor = document.getElementById('grid-equipos');
   if (!contenedor) return;
 
@@ -145,6 +149,19 @@ function renderEquipos(equipos, reportes) {
       }
     });
   }
+  // crear un mapa de estadisticas por PcId si es necesario
+  const estadisticasPorPc = {};
+  if (Array.isArray(estadisticas)) {
+    estadisticas.forEach(s => {
+      const pcId = s.pcId ?? s.PcId;
+      if (pcId) {
+        // Almacena o actualiza con la estadistica más reciente
+        if (!estadisticasPorPc[pcId] || new Date(s.createdAt || s.CreatedAt) > new Date(estadisticasPorPc[pcId].createdAt || estadisticasPorPc[pcId].CreatedAt)) {
+          estadisticasPorPc[pcId] = s;
+        }
+      }
+    });
+  }
 
   contenedor.innerHTML = equipos.map((e, index) => {
     const id = e.id ?? e.Id;
@@ -155,8 +172,11 @@ function renderEquipos(equipos, reportes) {
     // Resolver nombre del host
     const host = hostName.trim() !== '' ? hostName : `PC-${String(id || index + 1).padStart(2, '0')}`;
 
+
+    const lastEstadistica = estadisticasPorPc[id];
     // Estado visual y color
     const infoEstado = MAPA_ESTADOS[status] || MAPA_ESTADOS[4];
+    const infoSalud = MAPA_SALUD[lastEstadistica?.HealthStatus ?? 1] || MAPA_SALUD[1];
     const esPlantilla = status === 0 || hostName.trim() === '';
 
     // Obtener las métricas actuales desde el StatusReport vinculado
@@ -191,10 +211,10 @@ function renderEquipos(equipos, reportes) {
     }
 
     return `
-      <div class="equipo ${infoEstado.clave}">
+      <div class="equipo ${infoEstado.clave} ${infoSalud.clave}">
         <div class="fila-superior">
           <span class="host mono" title="IP: ${e.ipAddress || e.IpAddress || 'N/A'} | MAC: ${e.macAddress || e.MacAddress || 'N/A'}">${host}</span>
-          <span class="estado-dot" style="background:${infoEstado.color}"></span>
+          <span class="estado-dot" style="background:${infoSalud.color}"></span>
         </div>
         <div class="metricas">
           <div>CPU<span class="num mono">${cpuStr}</span></div>
@@ -241,15 +261,16 @@ async function fetchJSON(url) {
 
 async function cargarDatos() {
   // Consultas paralelas a los endpoints GET de C#
-  const [reportes, notificaciones, equipos] = await Promise.all([
+  const [reportes, notificaciones, equipos, estadisticas] = await Promise.all([
     fetchJSON(ENDPOINTS.adminStatusReport),
     fetchJSON(ENDPOINTS.notifications),
-    fetchJSON(ENDPOINTS.clientComputers)
+    fetchJSON(ENDPOINTS.clientComputers),
+    fetchJSON(ENDPOINTS.clientStadistics)
   ]);
 
   renderKpis(reportes, equipos);
   if (notificaciones) renderNotificaciones(notificaciones);
-  if (equipos) renderEquipos(equipos, reportes);
+  if (equipos && estadisticas) renderEquipos(equipos, reportes, estadisticas);
 
   actualizarReloj();
 }

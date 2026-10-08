@@ -30,8 +30,8 @@ public class InactiveComputerMonitorWorker : BackgroundService
 
                 // Consulta y actualiza los equipos superados en el umbral
                 var offlineCount = await dbContext.ClientComputers
-                    .Where(c => c.Status != (int)ComputerStatus.Offline && c.Status != (int)ComputerStatus.NoEnrolled && c.LastStatusReport <= cutoffTime)
-                    .ExecuteUpdateAsync(s => s.SetProperty(c => c.Status, (int)ComputerStatus.Offline), stoppingToken);
+                    .Where(c => c.Status != ComputerStatus.Offline && c.Status != ComputerStatus.NoEnrolled && c.LastStatusReport <= cutoffTime)
+                    .ExecuteUpdateAsync(s => s.SetProperty(c => c.Status, ComputerStatus.Offline), stoppingToken);
 
                 if (offlineCount > 0)
                 {

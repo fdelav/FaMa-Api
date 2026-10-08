@@ -67,27 +67,27 @@ public class EstadisticasWorker : BackgroundService
 
                     foreach (var stat in estadisticsPerPc)
                     {
-                        var newStatus = EvaluatedComputerStatus(stat);
+                        var newHealth = EvaluatedComputerStatus(stat);
 
                         if (clientComputers.TryGetValue(stat.PcId, out var clientComputer))
                         {
-                            if ((ComputerStatus)clientComputer.Status != newStatus && clientComputer.Status != (int)ComputerStatus.Offline)
+                            if (stat.ComputerHealth != newHealth)
                             {
                                 _logger.LogWarning("Cambio de estado en ClientComputer {PcId}: {EstadoAnterior} -> {NuevoEstado}", 
-                                    clientComputer.Id, clientComputer.Status, newStatus);
+                                    clientComputer.Id, clientComputer.Status, newHealth);
 
-                                clientComputer.Status = (int)newStatus;
+                                stat.ComputerHealth = newHealth;
 
-                                if (newStatus == ComputerStatus.Critical)
-                            {
-                                newNotifications.Add(new Notification
-                                {
-                                    PcId = clientComputer.Id,
-                                    Type = "HardwareAlert",
-                                    Message = $"El equipo {clientComputer.HostName} entró en estado CRÍTICO (Temp Max: {stat.TempMax:F1}°C, CPU Max: {stat.CpuMax:F1}%).",
-                                    CreatedAt = DateTime.UtcNow
-                                });
-                            }
+                                if (newHealth == ComputerHealth.Critical)
+                                    {
+                                        newNotifications.Add(new Notification
+                                        {
+                                            PcId = clientComputer.Id,
+                                            Type = "HardwareAlert",
+                                            Message = $"El equipo {clientComputer.HostName} entró en estado CRÍTICO (Temp Max: {stat.TempMax:F1}°C, CPU Max: {stat.CpuMax:F1}%).",
+                                            CreatedAt = DateTime.UtcNow
+                                        });
+                                    }
                             }
                         }
                         
@@ -111,18 +111,18 @@ public class EstadisticasWorker : BackgroundService
             }
         }
     }
-    private ComputerStatus EvaluatedComputerStatus(ClientStatistics stats)
+    private ComputerHealth EvaluatedComputerStatus(ClientStatistics stats)
     {
         if (stats.TempMax >= 85.0 || stats.CpuMax >= 98.0 || stats.RamMean >= 95.0)
         {
-            return ComputerStatus.Critical;
+            return ComputerHealth.Critical;
         }
 
         if (stats.TempMean >= 75.0 || stats.CpuMean >= 80.0 || stats.RamMean >= 85.0)
         {
-            return ComputerStatus.NeedMaintenance;
+            return ComputerHealth.Warning;
         }
 
-        return ComputerStatus.Online;
+        return ComputerHealth.Healthy;
     }
 }

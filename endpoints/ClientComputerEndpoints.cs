@@ -122,7 +122,7 @@ public static class ClientComputerEndpoints
 
         clientComputer.usageCode = null;
         clientComputer.usageCodeExpiration = null;
-        clientComputer.Status = 1; // Set status to active
+        clientComputer.Status = ComputerStatus.Online; // Set status to active
         clientComputer.LastEnrollment = DateTime.UtcNow;
         clientComputer.ReportApiKey = Guid.NewGuid(); // Generate a new API key
         await db.SaveChangesAsync();
