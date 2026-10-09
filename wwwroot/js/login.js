@@ -12,12 +12,10 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password })
-        });
+        }); 
         if (response.ok) {
-            alert("Inicio de sesión exitoso.");
             const data = await response.json();
             localStorage.setItem("token", data.token);
-            alert("Inicio de sesión exitoso.");
             window.location.href = "/index.html";
         } else {
             alert("Error al iniciar sesión. Por favor, verifica tus credenciales.");
