@@ -36,6 +36,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGroup("/auth").MapIdentityApi<IdentityUser>();
+app.MapPost("/auth/register", ()=> Results.BadRequest("Registration is disabled."));
 
 app.UseHttpsRedirection();
 
