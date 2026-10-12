@@ -237,15 +237,27 @@ function actualizarReloj() {
 
 // ---- Consulta a la API via Fetch ----
 
-async function fetchJSON(url) {
+function closeSession() {
+  localStorage.removeItem('token');
+  window.location.href = '/html/login.html';
+}
+
+async function fetchJSON(url, token) {
   try {
     const res = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       }
     });
+
+    if (res.status === 401) {
+      console.warn(`[HTTP 401] No autorizado al consultar ${url}. Redirigiendo a login.`);
+      closeSession();
+      return null;
+    }
 
     if (!res.ok) {
       console.warn(`[HTTP ${res.status}] Error consultando ${url}`);
@@ -259,13 +271,13 @@ async function fetchJSON(url) {
   }
 }
 
-async function cargarDatos() {
+async function cargarDatos(token) {
   // Consultas paralelas a los endpoints GET de C#
   const [reportes, notificaciones, equipos, estadisticas] = await Promise.all([
-    fetchJSON(ENDPOINTS.adminStatusReport),
-    fetchJSON(ENDPOINTS.notifications),
-    fetchJSON(ENDPOINTS.clientComputers),
-    fetchJSON(ENDPOINTS.clientStadistics)
+    fetchJSON(ENDPOINTS.adminStatusReport, token),
+    fetchJSON(ENDPOINTS.notifications, token),
+    fetchJSON(ENDPOINTS.clientComputers, token),
+    fetchJSON(ENDPOINTS.clientStadistics, token)
   ]);
 
   renderKpis(reportes, equipos);
@@ -278,6 +290,11 @@ async function cargarDatos() {
 // ---- Inicialización ----
 
 document.addEventListener('DOMContentLoaded', () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = '/html/login.html';
+    return;
+  } 
   cargarDatos();
   actualizarReloj();
 
