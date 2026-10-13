@@ -15,7 +15,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
         }); 
         if (response.ok) {
             const data = await response.json();
-            localStorage.setItem("token", data.token);
+            localStorage.setItem("token", data.accessToken);
             window.location.href = "/index.html";
         } else {
             alert("Error al iniciar sesión. Por favor, verifica tus credenciales.");

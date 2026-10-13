@@ -255,7 +255,7 @@ async function fetchJSON(url, token) {
 
     if (res.status === 401) {
       console.warn(`[HTTP 401] No autorizado al consultar ${url}. Redirigiendo a login.`);
-      closeSession();
+      //closeSession();
       return null;
     }
 
@@ -292,12 +292,13 @@ async function cargarDatos(token) {
 document.addEventListener('DOMContentLoaded', () => {
   const token = localStorage.getItem('token');
   if (!token) {
+    console.error("No se encontró token de sesión. Redirigiendo a login.");
     window.location.href = '/html/login.html';
     return;
   } 
-  cargarDatos();
+  cargarDatos(token);
   actualizarReloj();
 
   setInterval(actualizarReloj, 1000);
-  setInterval(cargarDatos, 5000); // Polling cada 5 segundos
+  setInterval(() => cargarDatos(token), 5000); // Polling cada 5 segundos
 });
