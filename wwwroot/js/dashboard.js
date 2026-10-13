@@ -255,7 +255,7 @@ async function fetchJSON(url, token) {
 
     if (res.status === 401) {
       console.warn(`[HTTP 401] No autorizado al consultar ${url}. Redirigiendo a login.`);
-      //closeSession();
+      closeSession();
       return null;
     }
 
