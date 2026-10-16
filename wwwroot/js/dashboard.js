@@ -7,7 +7,7 @@ const ENDPOINTS = {
   adminStatusReport: `${API_BASE_URL}/admin/statusreport`,
   clientStadistics: `${API_BASE_URL}/admin/clientstatistics`,
   notifications: `${API_BASE_URL}/api/notifications`,
-  clientComputers: `${API_BASE_URL}/clientcomputer`
+  clientComputers: `${API_BASE_URL}/admin/clientcomputer`
 };
 
 // Mapeo de enums numéricos de Status

@@ -6,18 +6,18 @@ using Microsoft.EntityFrameworkCore;
 
 public static class NotificationEndPoints
 {
-	public static IEndpointRouteBuilder MapNotificationEndpoints(
-		this IEndpointRouteBuilder endpoints)
+	public static IEndpointRouteBuilder MapNotificationEndpoints(this IEndpointRouteBuilder app)
 	{
-		var group = endpoints
+		var group = app
 			.MapGroup("/api/notifications")
-			.WithTags("Notifications");
+			.WithTags("Notifications")
+            .RequireAuthorization();
 
 		group.MapGet("/", GetNotifications);
         group.MapPatch("/read", ReadNotifications);
     
 
-		return endpoints;
+		return app;
 	}
 
 	private static async Task<IResult> GetNotifications(bool? unreadOnly,AppDbContext db) 
