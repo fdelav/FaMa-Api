@@ -8,7 +8,7 @@ public static class ClientStatisticsEndpoint
 {
 	public static IEndpointRouteBuilder MapClientStatisticsEndpoint(this IEndpointRouteBuilder app)
 	{
-        var adminGroup = app.MapGroup("/admin/clientstatistics");
+        var adminGroup = app.MapGroup("/admin/clientstatistics").RequireAuthorization();
 
 		adminGroup.MapGet("/", GetClientStatistics);
         adminGroup.MapDelete("/{id}", DeleteClientStatistics);

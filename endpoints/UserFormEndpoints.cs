@@ -6,8 +6,8 @@ public static class UserFormEndpoint
 {
     public static void MapUserFormEndpoint(this IEndpointRouteBuilder app)
     {
-        var userGroup = app.MapGroup("/user/userform").RequireApiKey();
-        var adminGroup = app.MapGroup("/admin/userform");
+        var userGroup = app.MapGroup("/user/userform");
+        var adminGroup = app.MapGroup("/admin/userform").RequireAuthorization();
 
         userGroup.MapPost("/", CreateUserForm);
         adminGroup.MapGet("/", GetAllUserForms);

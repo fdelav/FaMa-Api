@@ -5,14 +5,15 @@ public static class ClientComputerEndpoints
 {
     public static void MapClientComputerEndpoints(this IEndpointRouteBuilder app)
     {
-        var clientComputerGroup = app.MapGroup("/clientcomputer");
-
-        clientComputerGroup.MapGet("/", GetClientComputers);
-        clientComputerGroup.MapGet("/{id}", GetById);
+        var clientComputerGroup = app.MapGroup("/clientcomputer"); //Cabiar a "/agent/clientcomputer" al finalizar la fase de pruebas
         clientComputerGroup.MapPost("/enroll", Enroll);
         clientComputerGroup.MapPost("/confirm_enrollment", ConfirmEnrollment);
-        clientComputerGroup.MapPut("/{id}", Update);
-        clientComputerGroup.MapDelete("/{id}", Delete);
+
+        var adminGroup = app.MapGroup("/admin/clientcomputer").RequireAuthorization();
+        adminGroup.MapGet("/", GetClientComputers);
+        adminGroup.MapGet("/{id}", GetById);
+        adminGroup.MapPut("/{id}", Update);
+        adminGroup.MapDelete("/{id}", Delete);
     }
 
     private static async Task<IResult> GetClientComputers(AppDbContext db)

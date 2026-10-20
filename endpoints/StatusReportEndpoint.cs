@@ -11,7 +11,7 @@ public static class StatusReportEndpoint
         agentGroup.MapPost("/", Create);
         agentGroup.MapPost("/batch", CreateBatch);
 
-        var adminGroup = app.MapGroup("/admin/statusreport");
+        var adminGroup = app.MapGroup("/admin/statusreport").RequireAuthorization();
 
         adminGroup.MapGet("/", GetTodos);
         adminGroup.MapGet("/{id}", GetById);
