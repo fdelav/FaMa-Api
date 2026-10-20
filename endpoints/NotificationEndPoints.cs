@@ -20,7 +20,7 @@ public static class NotificationEndPoints
 		return app;
 	}
 
-	private static async Task<IResult> GetNotifications(bool? unreadOnly,AppDbContext db) 
+	private static async Task<IResult> GetNotifications(bool? unreadOnly,AppDbContext db, int page = 1, int pageSize = 10) 
     {   
 		var query = db.Notifications.AsQueryable();
 
@@ -29,8 +29,10 @@ public static class NotificationEndPoints
             query = query.Where(n => n.IsRead == 0);
         }
 
-        var notifications = await query.ToListAsync();
-        
+        var notifications = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
 
         return Results.Ok(notifications);
     }
