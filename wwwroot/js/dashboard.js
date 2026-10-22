@@ -107,7 +107,7 @@ function renderNotificaciones(notificaciones) {
     return;
   }
 
-  contenedor.innerHTML = notificaciones.map(n => {
+  contenedor.innerHTML = notificaciones.filter(n => !n.isRead).map(n => {
     const rawType = (n.type || n.Type || 'info').toLowerCase();
     const nivelClase = MAPA_TIPO_NOTIF[rawType] || 'ok';
     const color = MAPA_ESTADOS[nivelClase === 'ok' ? 1 : nivelClase === 'warn' ? 3 : 3]?.color || 'var(--ok)';
@@ -323,13 +323,14 @@ async function markAsRead() {
   }
 
   const selectedIds = ConseguirCheckboxSeleccionados();
+  const confirmed = confirm(`¿Está seguro de marcar ${selectedIds.length} notificación(es) como leída(s)?`) || selectedIds.length === 0;
+  if (!confirmed) return;
   if (selectedIds.length === 0) {
     alert("Seleccione al menos una notificación para marcar como leída.");
     return;
   }
 
   try {
-    console.log(`{[${selectedIds}]}`  );
     const res = await fetch(`${ENDPOINTS.notifications}/read-batch`, {
       method: 'PATCH',
       headers: {
