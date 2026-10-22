@@ -89,11 +89,17 @@ function renderKpis(statusData, equipos) {
   `).join('');
 }
 
+function ConseguirCheckboxSeleccionados() {
+  const checkboxes = document.querySelectorAll('#lista-notificaciones .notif-item input[type="checkbox"]:checked');
+  return Array.from(checkboxes).map(cb => cb.id.replace('notif-', ''));
+}
+
 /**
  * Renderiza la lista basada en NotificationDto
  */
 function renderNotificaciones(notificaciones) {
   const contenedor = document.getElementById('lista-notificaciones');
+  const checkboxSeleccionados = ConseguirCheckboxSeleccionados();
   if (!contenedor) return;
 
   if (!Array.isArray(notificaciones) || notificaciones.length === 0) {
@@ -119,9 +125,14 @@ function renderNotificaciones(notificaciones) {
           <div class="msg">${mensaje}</div>
           <div class="time mono">${hora}</div>
         </div>
+        <input type="checkbox" class="check" id="notif-${n.id || n.Id}" />
       </div>
     `;
   }).join('');
+  checkboxSeleccionados.forEach(id => {
+    const cb = document.getElementById(`notif-${id}`);
+    if (cb) cb.checked = true;
+  });
 }
 
 /**
