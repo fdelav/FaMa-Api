@@ -33,7 +33,10 @@
     <!-- Notificaciones -->
     <div class="col-lg-3">
       <div class="panel h-100">
-        <div class="panel-title">Notificaciones</div>
+        <div class="panel-title d-flex justify-content-between">
+          <span>Notificaciones</span>
+          <button class="btn btn-sm btn-primary" id="btn-marcar-leidas" onclick="markAsRead()">Marcar como leídas</button>
+        </div>
         <div class="notif-list" id="lista-notificaciones"></div>
       </div>
     </div>

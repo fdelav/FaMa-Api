@@ -91,7 +91,7 @@ function renderKpis(statusData, equipos) {
 
 function ConseguirCheckboxSeleccionados() {
   const checkboxes = document.querySelectorAll('#lista-notificaciones .notif-item input[type="checkbox"]:checked');
-  return Array.from(checkboxes).map(cb => cb.id.replace('notif-', ''));
+  return Array.from(checkboxes).map(cb => parseInt(cb.id.replace('notif-', '')));
 }
 
 /**
@@ -313,3 +313,41 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(actualizarReloj, 1000);
   setInterval(() => cargarDatos(token), 5000); // Polling cada 5 segundos
 });
+
+async function markAsRead() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error("No se encontró token de sesión. Redirigiendo a login.");
+    window.location.href = '/html/login.html';
+    return;
+  }
+
+  const selectedIds = ConseguirCheckboxSeleccionados();
+  if (selectedIds.length === 0) {
+    alert("Seleccione al menos una notificación para marcar como leída.");
+    return;
+  }
+
+  try {
+    console.log(`{[${selectedIds}]}`  );
+    const res = await fetch(`${ENDPOINTS.notifications}/read-batch`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: `[${selectedIds}]`
+    });
+
+    if (res.ok) {
+      console.log("Notificaciones marcadas como leídas:", selectedIds);
+      cargarDatos(token); // Recargar notificaciones
+    } else {
+      console.error("Error al marcar notificaciones como leídas:", res.status, await res.text());
+      alert("Error al marcar notificaciones como leídas. Revise la consola para más detalles.");
+    }
+  } catch (err) {
+    console.error("Error de red al marcar notificaciones como leídas:", err);
+    alert("Error de red al marcar notificaciones como leídas. Revise la consola para más detalles.");
+  }
+}
