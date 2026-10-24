@@ -16,7 +16,17 @@
 
 <header class="top d-flex justify-content-between align-items-center">
   <h1>FaMa · Panel de monitoreo</h1>
-  <div class="d-flex gap-2 align-items-center">
+  <div class="nav-pildoras d-flex gap-2 align-items-center">
+    <ul class="nav nav-pills mb-3" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="pills-home-tab" data-bs-toggle="pill" data-bs-target="#pills-home" type="button" role="tab" aria-controls="pills-home" aria-selected="true">Home</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pills-notifications-tab" data-bs-toggle="pill" data-bs-target="#pills-notifications" type="button" role="tab" aria-controls="pills-notifications" aria-selected="false">Notificaciones</button>
+      </li>
+    </ul>
+  </div>
+  <div class="d-flex gap-2 align-items-center" id="" role>
     <span class="updated mono" id="ultima-actualizacion"></span>
     <button class="close-session-btn" id="btn-cerrar-sesion" onclick="closeSession()">Cerrar Sesión</button>
   </div>
