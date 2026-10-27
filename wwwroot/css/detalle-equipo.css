@@ -1,0 +1,4 @@
+/* Solo el aspecto "clicable" de las tarjetas del dashboard. Archivo nuevo: no toca style.css. */
+#grid-equipos .equipo { cursor: pointer; transition: border-color .15s; }
+#grid-equipos .equipo:hover { border-color: var(--accent); }
+#grid-equipos .equipo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
