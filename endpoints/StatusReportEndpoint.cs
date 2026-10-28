@@ -40,6 +40,7 @@ public static class StatusReportEndpoint
             Cpu = statusReportDto.Cpu,
             Gpu = statusReportDto.Gpu,
             Temp = statusReportDto.Temp,
+            Disk = statusReportDto.Disk,
             CreatedAt = statusReportDto.CreatedAt ?? DateTime.UtcNow
         };
 
