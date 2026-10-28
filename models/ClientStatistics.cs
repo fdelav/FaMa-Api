@@ -17,6 +17,9 @@ public class ClientStatistics
 
 	public double DiskActivityMean { get; set; } = 0;
 	public double DiskActivityMax { get; set; } = 0;
+	public double DiskResponseMsMean { get; set; } = 0;
+	public double DiskResponseMsMax { get; set; } = 0;
+	
 	public ComputerHealth ComputerHealth { get; set; } = ComputerHealth.Healthy;
 	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

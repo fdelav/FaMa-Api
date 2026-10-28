@@ -50,6 +50,8 @@ public class EstadisticasWorker : BackgroundService
                             TempMax = g.Max(cs => cs.Temp),
                             DiskActivityMean = g.Average(cs => cs.DiskActivity),
                             DiskActivityMax = g.Max(cs => cs.DiskActivity),
+                            DiskResponseMsMean = g.Average(cs => cs.DiskResponseMs),
+                            DiskResponseMsMax = g.Max(cs => cs.DiskResponseMs),
                             CreatedAt = DateTime.UtcNow
                         })
                         .ToListAsync(stoppingToken);
