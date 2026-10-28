@@ -48,6 +48,10 @@ public class EstadisticasWorker : BackgroundService
                             GpuMax = g.Max(cs => cs.Gpu),
                             TempMean = g.Average(cs => cs.Temp),
                             TempMax = g.Max(cs => cs.Temp),
+                            DiskActivityMean = g.Average(cs => cs.DiskActivity),
+                            DiskActivityMax = g.Max(cs => cs.DiskActivity),
+                            DiskResponseMsMean = g.Average(cs => cs.DiskResponseMs),
+                            DiskResponseMsMax = g.Max(cs => cs.DiskResponseMs),
                             CreatedAt = DateTime.UtcNow
                         })
                         .ToListAsync(stoppingToken);
@@ -113,12 +117,12 @@ public class EstadisticasWorker : BackgroundService
     }
     private ComputerHealth EvaluatedComputerStatus(ClientStatistics stats)
     {
-        if (stats.TempMax >= 85.0 || stats.CpuMax >= 98.0 || stats.RamMean >= 95.0)
+        if (stats.TempMean >= 85.0 || stats.CpuMean >= 98.0 || stats.RamMean >= 95.0 || stats.DiskActivityMean >= 95.0)
         {
             return ComputerHealth.Critical;
         }
 
-        if (stats.TempMean >= 75.0 || stats.CpuMean >= 80.0 || stats.RamMean >= 85.0)
+        if (stats.TempMean >= 75.0 || stats.CpuMean >= 80.0 || stats.RamMean >= 85.0 || stats.DiskActivityMean >= 85.0)
         {
             return ComputerHealth.Warning;
         }
