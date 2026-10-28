@@ -115,12 +115,12 @@ public class EstadisticasWorker : BackgroundService
     }
     private ComputerHealth EvaluatedComputerStatus(ClientStatistics stats)
     {
-        if (stats.TempMax >= 85.0 || stats.CpuMax >= 98.0 || stats.RamMean >= 95.0)
+        if (stats.TempMean >= 85.0 || stats.CpuMean >= 98.0 || stats.RamMean >= 95.0 || stats.DiskMean >= 95.0)
         {
             return ComputerHealth.Critical;
         }
 
-        if (stats.TempMean >= 75.0 || stats.CpuMean >= 80.0 || stats.RamMean >= 85.0)
+        if (stats.TempMean >= 75.0 || stats.CpuMean >= 80.0 || stats.RamMean >= 85.0 || stats.DiskMean >= 85.0)
         {
             return ComputerHealth.Warning;
         }
