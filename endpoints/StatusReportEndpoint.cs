@@ -40,7 +40,7 @@ public static class StatusReportEndpoint
             Cpu = statusReportDto.Cpu,
             Gpu = statusReportDto.Gpu,
             Temp = statusReportDto.Temp,
-            Disk = statusReportDto.Disk,
+            DiskActivity = statusReportDto.DiskActivity,
             CreatedAt = statusReportDto.CreatedAt ?? DateTime.UtcNow
         };
 
@@ -69,7 +69,7 @@ public static class StatusReportEndpoint
             Cpu = dto.Cpu,
             Gpu = dto.Gpu,
             Temp = dto.Temp,
-            Disk = dto.Disk,
+            DiskActivity = dto.DiskActivity,
             CreatedAt = dto.CreatedAt ?? DateTime.UtcNow
         }).ToList();
 

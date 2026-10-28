@@ -6,6 +6,6 @@ public class StatusReport
     public float Cpu {get; set;}
     public float Gpu {get; set;}
     public float Temp {get; set;}
-    public float Disk {get; set;}
+    public float DiskActivity {get; set;}
     public DateTime CreatedAt {get; set;} = DateTime.UtcNow;
 }
