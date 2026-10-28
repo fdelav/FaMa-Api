@@ -114,8 +114,12 @@ function renderNotificaciones(notificaciones) {
     
     const mensaje = n.message || n.Message || 'Sin mensaje';
     const rawFecha = n.createdAt || n.CreatedAt;
-    const hora = rawFecha 
-      ? new Date(rawFecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) 
+    // Si el servidor manda la fecha sin zona horaria, se asume UTC (igual que en notificaciones.js)
+    const fechaObj = rawFecha
+      ? new Date(/[zZ]|[+-]\d\d:\d\d$/.test(rawFecha) ? rawFecha : `${rawFecha}Z`)
+      : null;
+    const hora = fechaObj && !isNaN(fechaObj)
+      ? `${fechaObj.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' })} · ${fechaObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`
       : '-';
 
     return `
