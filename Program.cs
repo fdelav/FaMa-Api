@@ -46,6 +46,7 @@ app.MapClientComputerEndpoints();
 app.MapClientStatisticsEndpoint();
 app.MapNotificationEndpoints();
 app.MapUserFormEndpoint();
+app.MapDownloadDataEndpoints();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
