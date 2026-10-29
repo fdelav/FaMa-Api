@@ -13,6 +13,24 @@
   const UMBRAL_SIN_DATOS_MS = 3 * 60 * 1000;
   const LOGIN_URL = '/html/login.html';
 
+  // Las notificaciones del panel cubren la misma ventana que usa el dashboard para
+  // "fallas recurrentes" (kpi-filtro.js → CONFIG.VENTANA_DIAS). Si cambias una, cambia la otra.
+  const VENTANA_NOTIF_DIAS = 7;
+  const NOTIF_REFRESCO_MS = 60 * 1000; // son muchas filas: se piden cada 60 s, no cada 5 s
+  const NOTIF_PAGINA = 500;
+  const NOTIF_MAX_PAGINAS = 6;
+  const NOTIF_MAX_POR_DIA = 100;       // filas dibujadas por día (el conteo del día es siempre el real)
+
+  // Tabla "Datos que está enviando": todos los reportes de HOY (no solo los últimos 30)
+  const DIA_MAX_FETCH = 10000;                 // tope que se pide al servidor (≈ 24 h a un reporte cada 10 s)
+  const DIA_MAX_FILAS = 3000;                  // filas dibujadas como máximo (las más recientes)
+  const DIA_REFETCH_COMPLETO_MS = 5 * 60 * 1000; // cada 5 min se vuelve a pedir el día completo (reportes que llegan tarde)
+
+  const cssNotif = document.createElement('link');
+  cssNotif.rel = 'stylesheet';
+  cssNotif.href = '/css/equipo-notif.css';
+  document.head.appendChild(cssNotif);
+
   const ETIQUETA_ESTADO = { 0: 'No enrolado', 1: 'Online', 2: 'Offline' };
   const CLASE_ESTADO = { 0: 'neutro', 1: 'ok', 2: 'offline' };
   const ETIQUETA_SALUD = { 0: 'Saludable', 1: 'Advertencia', 2: 'Crítico' };
@@ -106,10 +124,168 @@
     return {
       equipo: eq.data,
       reportes: delPc(rep.data).sort(porFechaDesc).slice(0, 60),
+      reportesTodos: delPc(rep.data),
       estadisticas: delPc(est.data).sort(porFechaDesc).slice(0, 12),
       notificaciones: (not.ok && Array.isArray(not.data) ? not.data : []).sort(porFechaDesc).slice(0, 10),
       origen: 'compatibilidad'
     };
+  }
+
+  // ---------- Notificaciones de la ventana (por fecha, no por cantidad) ----------
+  // Si el servidor manda la fecha sin zona horaria se asume UTC (igual que dashboard.js)
+  function fechaUtc(raw) {
+    if (!raw) return null;
+    const s = String(raw);
+    const d = new Date(/[zZ]|[+-]\d\d:\d\d$/.test(s) ? s : `${s}Z`);
+    return isNaN(d) ? null : d;
+  }
+
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const claveDia = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const fmtHM = (d) => d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+  function inicioVentana() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (VENTANA_NOTIF_DIAS - 1));
+    return d;
+  }
+
+  let notifCache = { id: null, t: 0, datos: null };
+
+  // Devuelve { lista, truncada } con TODAS las alertas de la ventana, o null si la consulta falla.
+  async function notificacionesVentana(id) {
+    if (notifCache.id === id && Date.now() - notifCache.t < NOTIF_REFRESCO_MS) return notifCache.datos;
+
+    const desde = encodeURIComponent(inicioVentana().toISOString());
+    const vistas = new Map();
+    let truncada = false;
+    for (let pagina = 1; pagina <= NOTIF_MAX_PAGINAS; pagina++) {
+      const r = await pedir(`${BASE}/api/notifications?pcId=${id}&startDate=${desde}&page=${pagina}&pageSize=${NOTIF_PAGINA}`);
+      if (!r.ok || !Array.isArray(r.data)) {
+        if (pagina === 1) return null; // sin datos: el panel usa las notificaciones recientes
+        truncada = true;
+        break;
+      }
+      r.data.forEach(n => vistas.set(g(n, 'id'), n));
+      if (r.data.length < NOTIF_PAGINA) break;
+      if (pagina === NOTIF_MAX_PAGINAS) truncada = true;
+    }
+    const datos = { lista: [...vistas.values()].sort(porFechaDesc), truncada };
+    notifCache = { id, t: Date.now(), datos };
+    return datos;
+  }
+
+  // ---------- Reportes enviados HOY ----------
+  // El refresco de 5 s solo trae los últimos 60 reportes. Para la tabla del día se pide el día
+  // completo una vez (y cada 5 min) y entre tanto solo lo nuevo, mezclándolo con lo ya cargado.
+  let diaCache = { id: null, dia: null, filas: new Map(), tCompleto: 0, ultima: 0, endpoint: null, truncada: false, estado: null };
+
+  async function reportesDelDia(id, detalle) {
+    const ahora = new Date();
+    const hoy = claveDia(ahora);
+    const inicio = new Date(ahora); inicio.setHours(0, 0, 0, 0);
+    if (diaCache.id !== id || diaCache.dia !== hoy) {
+      diaCache = { id, dia: hoy, filas: new Map(), tCompleto: 0, ultima: 0, endpoint: null, truncada: false, estado: null };
+    }
+
+    const mezclar = (lista) => (Array.isArray(lista) ? lista : []).forEach(r => {
+      const f = new Date(g(r, 'createdAt'));
+      if (isNaN(f) || f < inicio) return;
+      diaCache.filas.set(g(r, 'id'), r);
+      if (f.getTime() > diaCache.ultima) diaCache.ultima = f.getTime();
+    });
+
+    if (detalle.reportesTodos) { // modo compatibilidad: ya se descargaron todos los reportes del equipo
+      diaCache.filas = new Map(); diaCache.ultima = 0;
+      mezclar(detalle.reportesTodos);
+      diaCache.endpoint = true; diaCache.truncada = false;
+    } else {
+      if (diaCache.endpoint !== false) {
+        const completo = diaCache.filas.size === 0 || Date.now() - diaCache.tCompleto > DIA_REFETCH_COMPLETO_MS;
+        const desde = completo ? inicio : new Date(Math.max(diaCache.ultima - 60000, inicio.getTime()));
+        const r = await pedir(`${BASE}/admin/equipo-detalle/${id}/reportes?desde=${encodeURIComponent(desde.toISOString())}&max=${DIA_MAX_FETCH}`);
+        diaCache.estado = r.ok ? null : r.status; // último código HTTP si falló (0 = sin conexión)
+        if (r.ok && Array.isArray(r.data)) {
+          if (completo) {
+            diaCache.filas = new Map(); diaCache.ultima = 0; diaCache.tCompleto = Date.now();
+            diaCache.truncada = r.data.length >= DIA_MAX_FETCH;
+          }
+          mezclar(r.data);
+          diaCache.endpoint = true;
+        } else if (r.status === 404 || r.status === 405) {
+          diaCache.endpoint = false; // el servidor aún no tiene el endpoint nuevo
+        }
+      }
+      mezclar(detalle.reportes); // los 60 más recientes del refresco normal
+    }
+    return { lista: [...diaCache.filas.values()].sort(porFechaDesc), completa: diaCache.endpoint === true, truncada: diaCache.truncada, estado: diaCache.estado };
+  }
+
+  function itemNotif(n) {
+    const lvl = CLASE_TIPO_NOTIF[String(g(n, 'type') || 'info').toLowerCase()] || 'ok';
+    const leida = Number(g(n, 'isRead')) === 1;
+    return `
+        <div class="eq-notif${leida ? ' leida' : ''}">
+          <span class="dot ${lvl}"></span>
+          <div><div class="msg">${esc(g(n, 'message') || 'Sin mensaje')}</div>
+          <div class="time mono">${fmtFecha(g(n, 'createdAt'))}${leida ? '' : ' · sin leer'}</div></div>
+        </div>`;
+  }
+
+  // Días abiertos en el panel: se recuerdan porque la página se redibuja cada 5 s
+  const diasAbiertos = new Set();
+  let diasInicializados = false;
+
+  function panelNotificaciones(notificaciones, ventana) {
+    // Sin la consulta por fechas: lista plana de las más recientes
+    if (!ventana) {
+      return notificaciones.length
+        ? `<div class="eq-notif-lista">${notificaciones.map(itemNotif).join('')}</div>
+           <div class="eq-nota">Solo se muestran las más recientes.</div>`
+        : '<div class="eq-vacio">Este equipo no tiene notificaciones.</div>';
+    }
+    if (!notificaciones.length) {
+      return `<div class="eq-vacio">Sin notificaciones en los últimos ${VENTANA_NOTIF_DIAS} días.</div>`;
+    }
+
+    const hoy = new Date();
+    const ayer = new Date(hoy); ayer.setDate(ayer.getDate() - 1);
+    const grupos = new Map(); // yyyy-mm-dd -> { fecha, items: [{ n, f }] }
+    notificaciones.forEach(n => {
+      const f = fechaUtc(g(n, 'createdAt'));
+      if (!f) return;
+      const k = claveDia(f);
+      if (!grupos.has(k)) grupos.set(k, { fecha: f, items: [] });
+      grupos.get(k).items.push({ n, f });
+    });
+    const dias = [...grupos.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+
+    if (!diasInicializados) { diasAbiertos.add(claveDia(hoy)); diasInicializados = true; }
+
+    const etiqueta = (k, fecha) => k === claveDia(hoy) ? 'Hoy'
+      : k === claveDia(ayer) ? 'Ayer'
+      : fecha.toLocaleDateString('es-CO', { weekday: 'short', day: '2-digit', month: '2-digit' });
+
+    const html = dias.map(([k, grupo]) => {
+      const horas = grupo.items.map(x => x.f.getTime());
+      const rango = `${fmtHM(new Date(Math.min(...horas)))}–${fmtHM(new Date(Math.max(...horas)))}`;
+      const visibles = grupo.items.slice(0, NOTIF_MAX_POR_DIA);
+      const resto = grupo.items.length - visibles.length;
+      return `
+        <details class="eq-dia" data-dia="${k}"${diasAbiertos.has(k) ? ' open' : ''}>
+          <summary><span class="dia">${esc(etiqueta(k, grupo.fecha))}</span>
+            <span class="cuenta mono">${grupo.items.length} ${grupo.items.length === 1 ? 'alerta' : 'alertas'} · ${rango}</span></summary>
+          ${visibles.map(x => itemNotif(x.n)).join('')}
+          ${resto > 0 ? `<div class="eq-notif-mas">y ${resto} más ese día</div>` : ''}
+        </details>`;
+    }).join('');
+
+    const total = notificaciones.length;
+    return `
+      <div class="eq-notif-resumen"><strong>${total}</strong> ${total === 1 ? 'alerta' : 'alertas'} en <strong>${dias.length}</strong> de ${VENTANA_NOTIF_DIAS} días${ventana.truncada ? ' (lista parcial: hay más de las que se pueden cargar)' : ''}</div>
+      <div class="eq-notif-lista">${html}</div>
+      <div class="eq-nota">El dashboard solo cuenta como “día con falla” los días con falla sostenida o repetida; aquí se listan todas las alertas.</div>`;
   }
 
   // ---------- Render ----------
@@ -172,7 +348,7 @@
       <div class="eq-leyenda">${series.map(s => `<span><i style="background:${s.c}"></i>${s.n}</span>`).join('')}</div>`;
   }
 
-  function render({ equipo, reportes, estadisticas, notificaciones, origen }) {
+  function render({ equipo, reportes, estadisticas, notificaciones, origen, notifVentana, reportesDia }) {
     const ultimo = reportes[0] || null;
     const stat = estadisticas[0] || null;
     const status = g(equipo, 'status') ?? 0;
@@ -228,48 +404,55 @@
           <tr><td>RAM</td><td>${fmtNum(g(stat, 'ramMean'), '%', 1)}</td><td>${fmtNum(g(stat, 'ramMax'), '%', 1)}</td></tr>
           <tr><td>GPU</td><td>${fmtNum(g(stat, 'gpuMean'), '%', 1)}</td><td>${fmtNum(g(stat, 'gpuMax'), '%', 1)}</td></tr>
           <tr><td>Temp</td><td>${fmtNum(g(stat, 'tempMean'), '°C', 1)}</td><td>${fmtNum(g(stat, 'tempMax'), '°C', 1)}</td></tr>
-          <tr><td>Disco</td><td>${fmtNum(g(stat, 'diskMean'), '%', 1)}</td><td>${fmtNum(g(stat, 'diskMax'), '%', 1)}</td></tr>
-          ${g(stat, 'diskMsMean') != null ? `<tr><td>Disco (ms)</td><td>${fmtNum(g(stat, 'diskMsMean'), ' ms', 1)}</td><td>${fmtNum(g(stat, 'diskMsMax'), ' ms', 1)}</td></tr>` : ''}
+          <tr><td>Disco</td><td>${fmtNum(g(stat, 'diskActivityMean'), '%', 1)}</td><td>${fmtNum(g(stat, 'diskActivityMax'), '%', 1)}</td></tr>
         </tbody>
       </table>
       <div class="eq-nota">Calculado ${hace(g(stat, 'createdAt'))} · el servidor las recalcula cada 5 min</div>`
       : '<div class="eq-vacio">Aún no hay estadísticas calculadas (se generan cada 5 min).</div>';
 
-    // Últimos reportes recibidos
-    const hayMs = reportes.some(r => g(r, 'diskResponseMs') != null);
-    const filas = reportes.slice(0, 30).map(r => `
+    // Reportes que el equipo envió HOY
+    const delDia = reportesDia ? reportesDia.lista : reportes;
+    const hayMs = delDia.some(r => g(r, 'diskResponseMs') != null);
+    const filas = delDia.slice(0, DIA_MAX_FILAS).map(r => `
       <tr><td>${fmtHora(g(r, 'createdAt'))}</td><td>${fmtNum(g(r, 'cpu'), '%', 1)}</td><td>${fmtNum(g(r, 'ram'), '%', 1)}</td>
       <td>${fmtNum(g(r, 'gpu'), '%', 1)}</td><td>${fmtNum(g(r, 'temp'), '°C', 1)}</td>
       <td>${fmtNum(g(r, 'diskActivity'), '%', 1)}</td>${hayMs ? `<td>${fmtNum(g(r, 'diskResponseMs'), ' ms', 1)}</td>` : ''}</tr>`).join('');
-    const tabla = reportes.length ? `
+    const nDia = delDia.length;
+    const fmtN = (v) => v.toLocaleString('es-CO');
+    let notaDia = `Hoy: ${fmtN(nDia)} ${nDia === 1 ? 'reporte' : 'reportes'}`;
+    if (nDia > DIA_MAX_FILAS) notaDia += ` · mostrando los ${fmtN(DIA_MAX_FILAS)} más recientes`;
+    if (reportesDia && reportesDia.truncada) notaDia += ' · el servidor devolvió el máximo; puede haber más';
+    if (reportesDia && !reportesDia.completa) {
+      const st = reportesDia.estado;
+      const causa = (st === 404 || st === 405) ? 'el servidor no tiene el endpoint de reportes del día (recompila y reinicia la API)'
+        : st === 0 ? 'no se pudo conectar con el servidor'
+        : st ? `el servidor respondió ${st} al pedir los reportes del día`
+        : 'consultando el servidor…';
+      notaDia = `Solo los reportes recibidos desde que abriste esta página (${fmtN(nDia)}) · ${causa}`;
+    }
+    const tabla = nDia ? `
       <div class="eq-scroll"><table class="eq-tabla mono">
         <thead><tr><th>Hora</th><th>CPU</th><th>RAM</th><th>GPU</th><th>Temp</th><th>Disco</th>${hayMs ? '<th>Disco ms</th>' : ''}</tr></thead>
         <tbody>${filas}</tbody></table></div>
-      <div class="eq-nota">Mostrando ${Math.min(30, reportes.length)} de ${reportes.length} reportes cargados</div>`
-      : '<div class="eq-vacio">No hay reportes registrados para este equipo.</div>';
+      <div class="eq-nota">${notaDia}</div>`
+      : '<div class="eq-vacio">Hoy no se han recibido reportes de este equipo.</div>';
 
-    // Notificaciones del equipo
-    const notifs = notificaciones.length ? `<div class="eq-notif-lista">${notificaciones.map(n => {
-      const lvl = CLASE_TIPO_NOTIF[String(g(n, 'type') || 'info').toLowerCase()] || 'ok';
-      const leida = Number(g(n, 'isRead')) === 1;
-      return `
-        <div class="eq-notif${leida ? ' leida' : ''}">
-          <span class="dot ${lvl}"></span>
-          <div><div class="msg">${esc(g(n, 'message') || 'Sin mensaje')}</div>
-          <div class="time mono">${fmtFecha(g(n, 'createdAt'))}${leida ? '' : ' · sin leer'}</div></div>
-        </div>`;
-    }).join('')}</div>` : '<div class="eq-vacio">Este equipo no tiene notificaciones.</div>';
+    // Notificaciones del equipo (todas las de la ventana, agrupadas por día)
+    const notifs = panelNotificaciones(notificaciones, notifVentana);
 
+    const scrollNotif = elGrid.querySelector('.eq-notif-lista')?.scrollTop || 0;
     const scrollTabla = elGrid.querySelector('.eq-scroll')?.scrollTop || 0; // el refresco no debe reiniciar el scroll interno
     elGrid.innerHTML = `
       <section class="eq-card"><h3 class="eq-title">Información del equipo</h3><dl class="eq-info">${info}</dl></section>
       <section class="eq-card"><h3 class="eq-title">Métricas actuales</h3>${metricas}</section>
       <section class="eq-card ancha"><h3 class="eq-title">Historial reciente</h3>${grafico(reportes)}</section>
       <section class="eq-card"><h3 class="eq-title">Estadísticas (cálculo del servidor)</h3>${estHtml}</section>
-      <section class="eq-card"><h3 class="eq-title">Notificaciones del equipo</h3>${notifs}</section>
-      <section class="eq-card ancha"><h3 class="eq-title">Datos que está enviando</h3>${tabla}</section>`;
+      <section class="eq-card"><h3 class="eq-title">Notificaciones del equipo${notifVentana ? ` · últimos ${VENTANA_NOTIF_DIAS} días` : ''}</h3>${notifs}</section>
+      <section class="eq-card ancha"><h3 class="eq-title">Datos que está enviando · hoy</h3>${tabla}</section>`;
     const nuevaTabla = elGrid.querySelector('.eq-scroll');
     if (nuevaTabla) nuevaTabla.scrollTop = scrollTabla;
+    const nuevaNotif = elGrid.querySelector('.eq-notif-lista');
+    if (nuevaNotif) nuevaNotif.scrollTop = scrollNotif;
 
     elFuente.textContent = `Fuente: ${origen === 'dedicado' ? 'endpoint /admin/equipo-detalle' : 'endpoints existentes (modo compatibilidad)'} · se actualiza cada 5 s`;
     elAct.textContent = `Actualizado ${fmtHora(Date.now())}`;
@@ -292,6 +475,14 @@
   }
   elHost.textContent = `Equipo #${id}`;
 
+  // El <details> de cada día recuerda si el usuario lo abrió o cerró (el panel se redibuja cada 5 s)
+  elGrid.addEventListener('toggle', (ev) => {
+    const d = ev.target;
+    if (d.matches && d.matches('details.eq-dia')) {
+      if (d.open) diasAbiertos.add(d.dataset.dia); else diasAbiertos.delete(d.dataset.dia);
+    }
+  }, true);
+
   let cargando = false;
   async function refrescar() {
     if (cargando) return;
@@ -304,6 +495,9 @@
       } else if (detalle.error) {
         mostrarMensaje(esc(detalle.error));
       } else {
+        const ventana = await notificacionesVentana(id);
+        if (ventana) { detalle.notificaciones = ventana.lista; detalle.notifVentana = ventana; }
+        detalle.reportesDia = await reportesDelDia(id, detalle);
         render(detalle);
       }
     } finally {

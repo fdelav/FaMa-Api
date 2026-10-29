@@ -17,8 +17,33 @@ public static class EquipoDetalleEndpoints
             .RequireAuthorization();
 
         group.MapGet("/{pcId:int}", GetDetalle);
+        group.MapGet("/{pcId:int}/reportes", GetReportesDesde);
 
         return app;
+    }
+
+    // Reportes del equipo desde una fecha (más recientes primero). La página de detalle lo usa
+    // para mostrar todo lo que el equipo envió en el día. 'desde' llega en UTC (ISO 8601).
+    private static async Task<IResult> GetReportesDesde(
+        int pcId,
+        AppDbContext db,
+        DateTime desde,
+        int max = 10000)
+    {
+        max = Math.Clamp(max, 1, 20000);
+
+        // Npgsql solo acepta DateTime en UTC para columnas timestamptz. Según cómo se enlace el
+        // parámetro, 'desde' puede llegar como hora local: se normaliza para evitar un error 500.
+        var desdeUtc = DateTime.SpecifyKind(desde.Kind == DateTimeKind.Utc ? desde : desde.ToUniversalTime(), DateTimeKind.Utc);
+
+        var reportes = await db.StatusReports
+            .AsNoTracking()
+            .Where(r => r.PcId == pcId && r.CreatedAt >= desdeUtc)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(max)
+            .ToListAsync();
+
+        return Results.Ok(reportes);
     }
 
     private static async Task<IResult> GetDetalle(

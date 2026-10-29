@@ -1,0 +1,29 @@
+/* kpi-filtro.css (ARCHIVO NUEVO) — KPIs como filtro, notas en tarjetas y chip de filtro */
+
+.kpi-click { cursor: pointer; transition: border-color .15s, background .15s; }
+.kpi-click:hover,
+.kpi-click:focus-visible { border-color: var(--accent); background: #12331f; outline: none; }
+.kpi-click .ver-detalle { color: var(--muted); font-size: 0.7rem; margin-top: 0.35rem; }
+.kpi-click:hover .ver-detalle,
+.kpi-click:focus-visible .ver-detalle { color: var(--accent); }
+.kpi-activo { border-color: var(--accent); background: #12331f; box-shadow: inset 0 -2px 0 var(--accent); }
+.kpi-activo .ver-detalle { color: var(--accent); }
+
+/* Resumen del filtro junto al título del panel "Equipos" */
+.filtro-chip { display: inline-flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--muted); }
+.filtro-chip strong { color: var(--text); font-weight: 600; }
+.kpi-btn {
+  background: var(--panel); color: var(--text); border: 1px solid var(--panel-border);
+  border-radius: 4px; font-size: 0.72rem; padding: 0.25rem 0.6rem; cursor: pointer;
+}
+.kpi-btn:hover { background: var(--panel-border); }
+
+/* Mensaje cuando el filtro no devuelve equipos: ocupa toda la fila de la grilla */
+.kpi-vacio { grid-column: 1 / -1; }
+
+/* Notas dentro de la tarjeta del equipo */
+.equipo { max-height: none; } /* antes 120px: la fila "Disco" se salía de la tarjeta */
+.nota-kpi { margin-top: 0.4rem; font-size: 0.68rem; line-height: 1.3; }
+.nota-crit { color: var(--crit); }
+.nota-warn { color: var(--warn); }
+.nota-rec  { color: var(--warn); font-weight: 600; }

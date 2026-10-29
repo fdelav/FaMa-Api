@@ -34,6 +34,10 @@
   // dashboard.js no deja el id en la tarjeta, así que se cruza con la lista de equipos
   // usando lo que sí pinta: nombre + IP + MAC (en el atributo title).
   async function resolverId(tarjeta) {
+    // dashboard.js deja el id en data-id: es la vía directa y no depende del orden (hay filtro en Home)
+    const directo = Number(tarjeta.dataset.id);
+    if (Number.isInteger(directo) && directo > 0) return directo;
+
     let lista = null;
     try {
       const res = await fetch(`${BASE}/admin/clientcomputer`, {

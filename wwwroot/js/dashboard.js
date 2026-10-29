@@ -24,10 +24,6 @@ const MAPA_SALUD = {
   2: { clave: 'crit',        color: 'var(--crit)' }          // 2: Crítico
 };
 
-// Un equipo online se considera "en uso" si su último reporte tiene CPU igual o mayor a este valor (%).
-// Es una estimación: conviene calibrarlo con equipos de laboratorio en reposo.
-const UMBRAL_EN_USO_CPU = 15;
-
 // Mapeo de severidad de NotificationDto.Type -> CSS
 const MAPA_TIPO_NOTIF = {
   'info': 'ok',
@@ -61,8 +57,10 @@ function ultimoPorPc(lista) {
  * Renderiza la fila de KPIs globales (se calculan con el último dato de cada equipo):
  *  1. Equipos conectados (online) de los enrolados
  *  2. Equipos en estado crítico (entre los conectados)
- *  3. Equipos en uso (conectados con CPU >= UMBRAL_EN_USO_CPU)
- *  4. Clasificación de estado de toda la flota
+ *  3. Equipos en estado de advertencia (entre los conectados)
+ *  4. Equipos con fallas recurrentes (ver kpi-filtro.js)
+ *  5. Estado de la flota (el peor estado entre los conectados)
+ * Los KPIs 2, 3 y 4 también funcionan como filtro de la grilla de equipos.
  */
 function renderKpis(reportes, equipos, estadisticas) {
   const contenedor = document.getElementById('fila-kpis');
@@ -76,21 +74,18 @@ function renderKpis(reportes, equipos, estadisticas) {
   const ultReporte = ultimoPorPc(reportes);
   const ultEstadistica = ultimoPorPc(estadisticas);
 
-  let criticos = 0, advertencias = 0, enUso = 0;
+  let criticos = 0, advertencias = 0;
   conectados.forEach(e => {
     const id = e.id ?? e.Id;
     const est = ultEstadistica[id];
     const salud = est ? (est.computerHealth ?? est.ComputerHealth ?? 0) : 0;
     if (salud === 2) criticos++;
     else if (salud === 1) advertencias++;
-
-    const rep = ultReporte[id];
-    const cpu = rep ? (rep.cpu ?? rep.Cpu) : null;
-    if (cpu != null && cpu >= UMBRAL_EN_USO_CPU) enUso++;
   });
 
   const hayConectados = conectados.length > 0;
-  const pctUso = hayConectados ? Math.round((enUso / conectados.length) * 100) : 0;
+  if (window.kpiFiltro) window.kpiFiltro.actualizarDatos(lista, estadisticas);
+  const recurrentes = window.kpiFiltro ? window.kpiFiltro.conteo('recurrentes') : 0;
 
   let calificacion = '-';
   let colorCal = '';
@@ -102,19 +97,27 @@ function renderKpis(reportes, equipos, estadisticas) {
 
   const kpis = [
     { label: 'Equipos conectados', value: enrolados.length > 0 ? `${conectados.length} de ${enrolados.length}` : '-' },
-    { label: 'Equipos en estado crítico', value: hayConectados ? criticos : '-', color: criticos > 0 ? 'var(--crit)' : '' },
-    { label: 'Equipos en uso', value: hayConectados ? `${enUso} de ${conectados.length} · ${pctUso}%` : '-' },
-    { label: 'Clasificación de estado', value: calificacion, color: colorCal }
+    { label: 'Equipos en estado crítico', value: hayConectados ? criticos : '-', color: criticos > 0 ? 'var(--crit)' : '', filtro: 'criticos' },
+    { label: 'Equipos en advertencia', value: hayConectados ? advertencias : '-', color: advertencias > 0 ? 'var(--warn)' : '', filtro: 'advertencia' },
+    { label: 'Equipos con fallas recurrentes', value: enrolados.length > 0 ? recurrentes : '-', color: recurrentes > 0 ? 'var(--warn)' : '', filtro: 'recurrentes' },
+    { label: 'Estado de flota', value: calificacion, color: colorCal }
   ];
 
+  // El redibujado cada 5 s haría perder el foco del teclado en la tarjeta
+  const filtroConFoco = document.activeElement?.dataset?.filtro;
+  const filtroActivo = window.kpiFiltro ? window.kpiFiltro.activo() : null;
+
   contenedor.innerHTML = kpis.map(k => `
-    <div class="col-6 col-md-3">
-      <div class="kpi">
+    <div class="col-6 col-md">
+      <div class="kpi${k.filtro ? ' kpi-click' : ''}${k.filtro && k.filtro === filtroActivo ? ' kpi-activo' : ''}"${k.filtro ? ` data-filtro="${k.filtro}" role="button" tabindex="0" aria-pressed="${k.filtro === filtroActivo}"` : ''}>
         <div class="label">${k.label}</div>
         <div class="value mono"${k.color ? ` style="color:${k.color}"` : ''}>${k.value}</div>
+        ${k.filtro ? `<div class="ver-detalle">${k.filtro === filtroActivo ? 'Filtro activo · clic para quitar' : 'Clic para filtrar'}</div>` : ''}
       </div>
     </div>
   `).join('');
+
+  if (filtroConFoco) contenedor.querySelector(`[data-filtro="${filtroConFoco}"]`)?.focus();
 }
 
 function ConseguirCheckboxSeleccionados() {
@@ -177,6 +180,17 @@ function renderEquipos(equipos, reportes, estadisticas) {
   if (!Array.isArray(equipos) || equipos.length === 0) {
     contenedor.innerHTML = '<div class="col-12 text-muted">No hay equipos registrados.</div>';
     return;
+  }
+
+  // Filtro activo desde los KPIs (kpi-filtro.js)
+  if (window.kpiFiltro) {
+    const totalEquipos = equipos.length;
+    equipos = window.kpiFiltro.filtrar(equipos);
+    window.kpiFiltro.actualizarChip(equipos.length, totalEquipos);
+    if (equipos.length === 0) {
+      contenedor.innerHTML = `<div class="kpi-vacio text-muted p-2">${window.kpiFiltro.mensajeVacio()}</div>`;
+      return;
+    }
   }
 
   // Crear un mapa con el reporte más reciente por equipo (PcId)
@@ -268,6 +282,7 @@ function renderEquipos(equipos, reportes, estadisticas) {
           <div>Temp<span class="num mono">${tempStr}</span></div>
           <div>Disco<span class="num mono">${diskStr}</span></div>
         </div>
+        ${window.kpiFiltro ? window.kpiFiltro.nota(id) : ''}
         <div class="visto">${vistoText}</div>
       </div>
     `;
@@ -318,6 +333,16 @@ async function fetchJSON(url, token) {
   }
 }
 
+// Últimos datos descargados: permiten re-dibujar al cambiar el filtro sin volver a consultar la API
+let datosActuales = {};
+
+document.addEventListener('kpi-filtro-cambio', () => {
+  const { reportes, equipos, estadisticas } = datosActuales;
+  if (!equipos) return;
+  renderKpis(reportes, equipos, estadisticas);
+  if (estadisticas) renderEquipos(equipos, reportes, estadisticas);
+});
+
 async function cargarDatos(token) {
   // Consultas paralelas a los endpoints GET de C#
   const [reportes, notificaciones, equipos, estadisticas] = await Promise.all([
@@ -327,6 +352,7 @@ async function cargarDatos(token) {
     fetchJSON(ENDPOINTS.clientStadistics, token)
   ]);
 
+  datosActuales = { reportes, equipos, estadisticas };
   renderKpis(reportes, equipos, estadisticas);
   if (notificaciones) renderNotificaciones(notificaciones);
   if (equipos && estadisticas) renderEquipos(equipos, reportes, estadisticas);
