@@ -17,11 +17,16 @@ const MAPA_ESTADOS = {
   2: { clave: 'offline',   color: 'var(--offline)' },       // 2: Offline  
 };
 
+// Salud del equipo: mismos valores que el enum ComputerHealth del backend
 const MAPA_SALUD = {
-  1: { clave: 'ok',          color: 'var(--ok)' },           // 1: Saludable
-  2: { clave: 'warn',        color: 'var(--warn)' },         // 2: Advertencia
-  3: { clave: 'crit',        color: 'var(--crit)' }          // 3: Crítico
+  0: { clave: 'ok',          color: 'var(--ok)' },           // 0: Saludable
+  1: { clave: 'warn',        color: 'var(--warn)' },         // 1: Advertencia
+  2: { clave: 'crit',        color: 'var(--crit)' }          // 2: Crítico
 };
+
+// Un equipo online se considera "en uso" si su último reporte tiene CPU igual o mayor a este valor (%).
+// Es una estimación: conviene calibrarlo con equipos de laboratorio en reposo.
+const UMBRAL_EN_USO_CPU = 15;
 
 // Mapeo de severidad de NotificationDto.Type -> CSS
 const MAPA_TIPO_NOTIF = {
@@ -37,53 +42,76 @@ const MAPA_TIPO_NOTIF = {
 // ---- Funciones de Renderizado ----
 
 /**
- * Renderiza la fila de KPIs globales
- * Soporta tanto la respuesta de un reporte consolidado como de la lista de StatusReport
+ * Devuelve { [pcId]: elemento más reciente } para una lista de reportes o estadísticas.
  */
-function renderKpis(statusData, equipos) {
+function ultimoPorPc(lista) {
+  const mapa = {};
+  if (!Array.isArray(lista)) return mapa;
+  lista.forEach(item => {
+    const pcId = item.pcId ?? item.PcId;
+    if (pcId == null) return;
+    const fecha = new Date(item.createdAt ?? item.CreatedAt);
+    const previo = mapa[pcId];
+    if (!previo || fecha > new Date(previo.createdAt ?? previo.CreatedAt)) mapa[pcId] = item;
+  });
+  return mapa;
+}
+
+/**
+ * Renderiza la fila de KPIs globales (se calculan con el último dato de cada equipo):
+ *  1. Equipos conectados (online) de los enrolados
+ *  2. Equipos en estado crítico (entre los conectados)
+ *  3. Equipos en uso (conectados con CPU >= UMBRAL_EN_USO_CPU)
+ *  4. Clasificación de estado de toda la flota
+ */
+function renderKpis(reportes, equipos, estadisticas) {
   const contenedor = document.getElementById('fila-kpis');
   if (!contenedor) return;
 
-  let conectados = 0;
-  let cpuPromedio = 0;
-  let ramPromedio = 0;
-  let tempPromedio = 0;
+  const lista = Array.isArray(equipos) ? equipos : [];
+  const estadoDe = e => e.status ?? e.Status ?? 0;
+  const enrolados = lista.filter(e => estadoDe(e) !== 0);   // Online + Offline
+  const conectados = lista.filter(e => estadoDe(e) === 1);  // Online
 
-  if (Array.isArray(equipos)) {
-    conectados = equipos.filter(e => e.status === 1 || e.Status === 1).length;
-  }
+  const ultReporte = ultimoPorPc(reportes);
+  const ultEstadistica = ultimoPorPc(estadisticas);
 
-  // Si /admin/statusreport retorna la lista de reportes individuales (StatusReport)
-  if (Array.isArray(statusData) && statusData.length > 0) {
-    const total = statusData.length;
-    const cpuSum = statusData.reduce((acc, r) => acc + (r.cpu ?? r.Cpu ?? 0), 0);
-    const ramSum = statusData.reduce((acc, r) => acc + (r.ram ?? r.Ram ?? 0), 0);
-    const tempSum = statusData.reduce((acc, r) => acc + (r.temp ?? r.Temp ?? 0), 0);
+  let criticos = 0, advertencias = 0, enUso = 0;
+  conectados.forEach(e => {
+    const id = e.id ?? e.Id;
+    const est = ultEstadistica[id];
+    const salud = est ? (est.computerHealth ?? est.ComputerHealth ?? 0) : 0;
+    if (salud === 2) criticos++;
+    else if (salud === 1) advertencias++;
 
-    cpuPromedio = Math.round(cpuSum / total);
-    ramPromedio = Math.round(ramSum / total);
-    tempPromedio = Math.round(tempSum / total);
-  } else if (statusData && typeof statusData === 'object') {
-    // Si la API retorna un DTO consolidado en lugar de una lista
-    cpuPromedio = Math.round(statusData.cpuAverage ?? statusData.cpuPromedio ?? 0);
-    ramPromedio = Math.round(statusData.ramAverage ?? statusData.ramPromedio ?? 0);
-    tempPromedio = Math.round(statusData.tempAverage ?? statusData.tempPromedio ?? 0);
-    if (statusData.connectedCount != null) conectados = statusData.connectedCount;
+    const rep = ultReporte[id];
+    const cpu = rep ? (rep.cpu ?? rep.Cpu) : null;
+    if (cpu != null && cpu >= UMBRAL_EN_USO_CPU) enUso++;
+  });
+
+  const hayConectados = conectados.length > 0;
+  const pctUso = hayConectados ? Math.round((enUso / conectados.length) * 100) : 0;
+
+  let calificacion = '-';
+  let colorCal = '';
+  if (hayConectados) {
+    if (criticos > 0) { calificacion = 'Crítico'; colorCal = 'var(--crit)'; }
+    else if (advertencias > 0) { calificacion = 'Advertencia'; colorCal = 'var(--warn)'; }
+    else { calificacion = 'Normal'; }
   }
 
   const kpis = [
-    { label: 'Equipos conectados', value: conectados > 0 ? conectados : '-' },
-    { label: 'Promedio CPU', value: cpuPromedio > 0 ? `${cpuPromedio}%` : '-' },
-    { label: 'Promedio RAM', value: ramPromedio > 0 ? `${ramPromedio}%` : '-' },
-    { label: 'Promedio Temperatura', value: tempPromedio > 0 ? `${tempPromedio}°C` : '-' },
-    { label: 'Clasificación de estado', value: conectados > 0 ? 'Normal' : '-' }
+    { label: 'Equipos conectados', value: enrolados.length > 0 ? `${conectados.length} de ${enrolados.length}` : '-' },
+    { label: 'Equipos en estado crítico', value: hayConectados ? criticos : '-', color: criticos > 0 ? 'var(--crit)' : '' },
+    { label: 'Equipos en uso', value: hayConectados ? `${enUso} de ${conectados.length} · ${pctUso}%` : '-' },
+    { label: 'Clasificación de estado', value: calificacion, color: colorCal }
   ];
 
   contenedor.innerHTML = kpis.map(k => `
-    <div class="col-6 col-md-4 col-lg">
+    <div class="col-6 col-md-3">
       <div class="kpi">
         <div class="label">${k.label}</div>
-        <div class="value mono">${k.value}</div>
+        <div class="value mono"${k.color ? ` style="color:${k.color}"` : ''}>${k.value}</div>
       </div>
     </div>
   `).join('');
@@ -191,7 +219,8 @@ function renderEquipos(equipos, reportes, estadisticas) {
     const lastEstadistica = estadisticasPorPc[id];
     // Estado visual y color
     const infoEstado = MAPA_ESTADOS[status] || MAPA_ESTADOS[4];
-    const infoSalud = MAPA_SALUD[lastEstadistica?.HealthStatus ?? 1] || MAPA_SALUD[1];
+    const saludEquipo = lastEstadistica ? (lastEstadistica.computerHealth ?? lastEstadistica.ComputerHealth ?? 0) : 0;
+    const infoSalud = MAPA_SALUD[saludEquipo] || MAPA_SALUD[0];
     const esPlantilla = status === 0 || hostName.trim() === '';
 
     // Obtener las métricas actuales desde el StatusReport vinculado
@@ -200,10 +229,12 @@ function renderEquipos(equipos, reportes, estadisticas) {
     const cpuVal = reporteActual ? (reporteActual.cpu ?? reporteActual.Cpu) : null;
     const ramVal = reporteActual ? (reporteActual.ram ?? reporteActual.Ram) : null;
     const tempVal = reporteActual ? (reporteActual.temp ?? reporteActual.Temp) : null;
+    const diskVal = reporteActual ? (reporteActual.diskActivity ?? reporteActual.DiskActivity) : null;
 
     const cpuStr = cpuVal != null ? `${Math.round(cpuVal)}%` : '—';
     const ramStr = ramVal != null ? `${Math.round(ramVal)}%` : '—';
     const tempStr = tempVal != null ? `${Math.round(tempVal)}°C` : '—';
+    const diskStr = diskVal != null ? `${Math.round(diskVal)}%` : '—';
 
     // Texto de última actualización
     let vistoText = 'Aún no enrolado';
@@ -235,6 +266,7 @@ function renderEquipos(equipos, reportes, estadisticas) {
           <div>CPU<span class="num mono">${cpuStr}</span></div>
           <div>RAM<span class="num mono">${ramStr}</span></div>
           <div>Temp<span class="num mono">${tempStr}</span></div>
+          <div>Disco<span class="num mono">${diskStr}</span></div>
         </div>
         <div class="visto">${vistoText}</div>
       </div>
@@ -295,7 +327,7 @@ async function cargarDatos(token) {
     fetchJSON(ENDPOINTS.clientStadistics, token)
   ]);
 
-  renderKpis(reportes, equipos);
+  renderKpis(reportes, equipos, estadisticas);
   if (notificaciones) renderNotificaciones(notificaciones);
   if (equipos && estadisticas) renderEquipos(equipos, reportes, estadisticas);
 
