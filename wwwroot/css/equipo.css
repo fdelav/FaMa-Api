@@ -43,6 +43,7 @@ a.close-session-btn:hover { color: var(--text); }
 .eq-metric .fill.warn { background: var(--warn); }
 .eq-metric .fill.crit { background: var(--crit); }
 .eq-metric .val { font-size: .85rem; text-align: right; }
+.eq-metric .sub { font-size: .72rem; color: var(--muted); }
 
 .eq-grafico { width: 100%; height: auto; max-height: 260px; }
 .eq-grafico .g-line { stroke: var(--panel-border); stroke-width: 1; }

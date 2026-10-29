@@ -23,7 +23,9 @@
   const UMBRALES = {
     cpu: { warn: 80, crit: 98 },
     ram: { warn: 85, crit: 95 },
-    temp: { warn: 75, crit: 85 }
+    temp: { warn: 75, crit: 85 },
+    // Solo visual: el worker todavía no evalúa el disco para la salud del equipo
+    disk: { warn: 80, crit: 95 }
   };
 
   const $ = (id) => document.getElementById(id);
@@ -121,6 +123,16 @@
       </div>`;
   }
 
+  // Fila de texto (sin barra) para valores que no son porcentaje, como los ms del disco
+  function filaTexto(etiqueta, nota, valor, unidad, dec = 1) {
+    return `
+      <div class="eq-metric">
+        <span class="lbl">${etiqueta}</span>
+        <span class="sub">${nota}</span>
+        <span class="val mono">${fmtNum(valor, unidad, dec)}</span>
+      </div>`;
+  }
+
   function grafico(reportesDesc) {
     const datos = [...reportesDesc].reverse(); // del más viejo al más nuevo
     if (datos.length < 2) return '<div class="eq-vacio">Se necesitan al menos 2 reportes para graficar.</div>';
@@ -135,7 +147,8 @@
       { k: 'cpu', n: 'CPU %', c: 'var(--accent)' },
       { k: 'ram', n: 'RAM %', c: '#6fb7e9' },
       { k: 'gpu', n: 'GPU %', c: '#b78ae0' },
-      { k: 'temp', n: 'Temp °C', c: 'var(--warn)' }
+      { k: 'temp', n: 'Temp °C', c: 'var(--warn)' },
+      { k: 'diskActivity', n: 'Disco %', c: '#4fd1c5' }
     ];
 
     const rejilla = [0, 25, 50, 75, 100].map(v => `
@@ -143,7 +156,10 @@
       <text x="${PL - 4}" y="${y(v) + 3}" class="g-txt" text-anchor="end">${v}</text>`).join('');
 
     const lineas = series.map(s => {
-      const pts = datos.map((r, i) => `${x(i).toFixed(1)},${y(g(r, s.k)).toFixed(1)}`).join(' ');
+      // Los reportes antiguos no traen disco: se omiten en vez de dibujarlos en 0
+      const pts = datos.map((r, i) => (g(r, s.k) == null ? null : `${x(i).toFixed(1)},${y(g(r, s.k)).toFixed(1)}`))
+        .filter(Boolean);
+      if (pts.length < 2) return '';
       return `<polyline points="${pts}" fill="none" stroke-width="1.8" style="stroke:${s.c}"/>`;
     }).join('');
 
@@ -198,6 +214,8 @@
       ${filaMetrica('RAM', 'ram', g(ultimo, 'ram'), '%')}
       ${filaMetrica('GPU', 'gpu', g(ultimo, 'gpu'), '%')}
       ${filaMetrica('Temp', 'temp', g(ultimo, 'temp'), '°C')}
+      ${filaMetrica('Disco', 'disk', g(ultimo, 'diskActivity'), '%')}
+      ${g(ultimo, 'diskResponseMs') != null ? filaTexto('Resp.', 'tiempo de respuesta del disco', g(ultimo, 'diskResponseMs'), ' ms') : ''}
       <div class="eq-nota">Medido: ${fmtFecha(fechaUltimo, true)}</div>`
       : '<div class="eq-vacio">Sin métricas todavía.</div>';
 
@@ -210,18 +228,22 @@
           <tr><td>RAM</td><td>${fmtNum(g(stat, 'ramMean'), '%', 1)}</td><td>${fmtNum(g(stat, 'ramMax'), '%', 1)}</td></tr>
           <tr><td>GPU</td><td>${fmtNum(g(stat, 'gpuMean'), '%', 1)}</td><td>${fmtNum(g(stat, 'gpuMax'), '%', 1)}</td></tr>
           <tr><td>Temp</td><td>${fmtNum(g(stat, 'tempMean'), '°C', 1)}</td><td>${fmtNum(g(stat, 'tempMax'), '°C', 1)}</td></tr>
+          <tr><td>Disco</td><td>${fmtNum(g(stat, 'diskMean'), '%', 1)}</td><td>${fmtNum(g(stat, 'diskMax'), '%', 1)}</td></tr>
+          ${g(stat, 'diskMsMean') != null ? `<tr><td>Disco (ms)</td><td>${fmtNum(g(stat, 'diskMsMean'), ' ms', 1)}</td><td>${fmtNum(g(stat, 'diskMsMax'), ' ms', 1)}</td></tr>` : ''}
         </tbody>
       </table>
       <div class="eq-nota">Calculado ${hace(g(stat, 'createdAt'))} · el servidor las recalcula cada 5 min</div>`
       : '<div class="eq-vacio">Aún no hay estadísticas calculadas (se generan cada 5 min).</div>';
 
     // Últimos reportes recibidos
+    const hayMs = reportes.some(r => g(r, 'diskResponseMs') != null);
     const filas = reportes.slice(0, 30).map(r => `
       <tr><td>${fmtHora(g(r, 'createdAt'))}</td><td>${fmtNum(g(r, 'cpu'), '%', 1)}</td><td>${fmtNum(g(r, 'ram'), '%', 1)}</td>
-      <td>${fmtNum(g(r, 'gpu'), '%', 1)}</td><td>${fmtNum(g(r, 'temp'), '°C', 1)}</td></tr>`).join('');
+      <td>${fmtNum(g(r, 'gpu'), '%', 1)}</td><td>${fmtNum(g(r, 'temp'), '°C', 1)}</td>
+      <td>${fmtNum(g(r, 'diskActivity'), '%', 1)}</td>${hayMs ? `<td>${fmtNum(g(r, 'diskResponseMs'), ' ms', 1)}</td>` : ''}</tr>`).join('');
     const tabla = reportes.length ? `
       <div class="eq-scroll"><table class="eq-tabla mono">
-        <thead><tr><th>Hora</th><th>CPU</th><th>RAM</th><th>GPU</th><th>Temp</th></tr></thead>
+        <thead><tr><th>Hora</th><th>CPU</th><th>RAM</th><th>GPU</th><th>Temp</th><th>Disco</th>${hayMs ? '<th>Disco ms</th>' : ''}</tr></thead>
         <tbody>${filas}</tbody></table></div>
       <div class="eq-nota">Mostrando ${Math.min(30, reportes.length)} de ${reportes.length} reportes cargados</div>`
       : '<div class="eq-vacio">No hay reportes registrados para este equipo.</div>';
