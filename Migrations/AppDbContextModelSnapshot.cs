@@ -91,6 +91,18 @@ namespace FaMaApi.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<double>("DiskActivityMax")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("DiskActivityMean")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("DiskResponseMsMax")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("DiskResponseMsMean")
+                        .HasColumnType("double precision");
+
                     b.Property<double>("GpuMax")
                         .HasColumnType("double precision");
 
@@ -356,6 +368,12 @@ namespace FaMaApi.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<float>("DiskActivity")
+                        .HasColumnType("real");
+
+                    b.Property<float>("DiskResponseMs")
+                        .HasColumnType("real");
 
                     b.Property<float>("Gpu")
                         .HasColumnType("real");
