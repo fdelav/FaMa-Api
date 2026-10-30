@@ -16,6 +16,7 @@ builder.Services.AddHostedService<EstadisticasWorker>();
 builder.Services.AddHostedService<InactiveComputerMonitorWorker>();
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
+builder.Services.AddWindowsService();
 
 var app = builder.Build();
 
