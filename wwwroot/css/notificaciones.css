@@ -87,3 +87,7 @@
   .nt-fila .nt-col-estado { grid-column: 3; }
   .nt-acciones { margin-left: 0; width: 100%; }
 }
+
+.nt-fila:hover { background: var(--panel-2); }
+.nt-fila input[type=checkbox], .nt-cabecera input[type=checkbox] { accent-color: var(--accent); }
+.nt-badge.nueva { background: rgba(214,233,75,.1); border-color: transparent; }

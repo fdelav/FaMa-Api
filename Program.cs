@@ -50,6 +50,7 @@ app.MapClientStatisticsEndpoint();
 app.MapNotificationEndpoints();
 app.MapUserFormEndpoint();
 app.MapEquipoDetalleEndpoints();
+app.MapDownloadDataEndpoints();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();

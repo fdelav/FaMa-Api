@@ -22,7 +22,7 @@ a.close-session-btn:hover { color: var(--text); }
   min-width: 0;
   display: flex; flex-direction: column;
   background: var(--panel); border: 1px solid var(--panel-border);
-  border-radius: 4px; padding: .9rem 1.1rem;
+  border-radius: 10px; padding: 1.05rem 1.25rem;
 }
 .eq-card.ancha { grid-column: 1 / -1; }
 .eq-card.c4 { grid-column: span 4; }
@@ -34,18 +34,18 @@ a.close-session-btn:hover { color: var(--text); }
 @media (max-width: 767px) {
   .eq-card.c4, .eq-card.c8 { grid-column: span 12; }
 }
-.eq-title { font-size: .8rem; font-weight: 600; color: var(--muted); margin: 0 0 .7rem; text-transform: uppercase; letter-spacing: .04em; }
+.eq-title { font-size: .95rem; font-weight: 600; color: var(--text); margin: 0 0 .9rem; }
 .eq-nota { color: var(--muted); font-size: .72rem; margin-top: .5rem; }
 .eq-vacio { color: var(--muted); font-size: .85rem; padding: .4rem 0; }
 
 .eq-pill {
   display: inline-block; font-size: .74rem; font-weight: 600;
-  padding: .15rem .6rem; border-radius: 999px;
+  padding: .2rem .7rem; border-radius: 999px;
   border: 1px solid var(--panel-border); color: var(--text);
 }
-.eq-pill.ok { border-color: var(--ok); color: var(--ok); }
-.eq-pill.warn { border-color: var(--warn); color: var(--warn); }
-.eq-pill.crit { border-color: var(--crit); color: var(--crit); }
+.eq-pill.ok { border-color: transparent; background: var(--ok-bg); color: var(--ok); }
+.eq-pill.warn { border-color: transparent; background: var(--warn-bg); color: var(--warn); }
+.eq-pill.crit { border-color: transparent; background: var(--crit-bg); color: var(--crit); }
 .eq-pill.offline { border-color: var(--offline); color: var(--muted); }
 .eq-pill.neutro { color: var(--muted); border-style: dashed; }
 
@@ -56,20 +56,20 @@ a.close-session-btn:hover { color: var(--text); }
 
 .eq-metric { display: grid; grid-template-columns: 3rem 1fr 4.5rem; align-items: center; gap: .6rem; margin-bottom: .55rem; }
 .eq-metric .lbl { font-size: .8rem; color: var(--muted); }
-.eq-metric .bar { height: 9px; background: var(--bg); border-radius: 4px; overflow: hidden; }
-.eq-metric .fill { height: 100%; background: var(--ok); }
+.eq-metric .bar { height: 10px; background: var(--bg); border-radius: 99px; overflow: hidden; }
+.eq-metric .fill { height: 100%; background: var(--ok); border-radius: 99px; transition: width .6s; }
 .eq-metric .fill.warn { background: var(--warn); }
 .eq-metric .fill.crit { background: var(--crit); }
 .eq-metric .val { font-size: .85rem; text-align: right; }
 .eq-metric .sub { font-size: .72rem; color: var(--muted); }
 
 .eq-grafico { display: block; width: 100%; height: auto; }
-.eq-grafico .g-line { stroke: var(--panel-border); stroke-width: 1; }
+.eq-grafico .g-line { stroke: var(--panel-border); stroke-width: 1; stroke-dasharray: 3 4; }
 .eq-grafico .g-txt { fill: var(--muted); font-size: 9px; font-family: 'JetBrains Mono', monospace; }
 .eq-leyenda { display: flex; gap: .9rem; flex-wrap: wrap; margin-top: .3rem; font-size: .74rem; color: var(--muted); }
 .eq-leyenda i { display: inline-block; width: 10px; height: 3px; margin-right: .3rem; vertical-align: middle; }
 
-.eq-scroll { max-height: 340px; overflow-y: auto; border: 1px solid var(--panel-border); border-radius: 4px; }
+.eq-scroll { max-height: 340px; overflow-y: auto; border: 1px solid var(--panel-border); border-radius: 8px; }
 .eq-tabla { width: 100%; font-size: .78rem; border-collapse: collapse; }
 .eq-tabla th, .eq-tabla td { padding: .35rem .6rem; text-align: right; border-bottom: 1px solid var(--panel-border); color: var(--text); }
 .eq-tabla th:first-child, .eq-tabla td:first-child { text-align: left; }
@@ -102,3 +102,8 @@ details.eq-dia > summary .dia { flex: 1; font-weight: 600; }
 details.eq-dia > summary .cuenta { color: var(--muted); font-size: .72rem; white-space: nowrap; }
 details.eq-dia .eq-notif:first-of-type { border-top: 1px solid var(--panel-border); }
 .eq-notif-mas { color: var(--muted); font-size: .72rem; padding: .4rem 0; }
+.eq-grafico polyline { stroke-linejoin: round; stroke-linecap: round; }
+.eq-leyenda i { height: 4px; border-radius: 2px; width: 14px; }
+.eq-tabla tbody tr:hover td { background: var(--panel-2); }
+
+main > .eq-nota, .eq-flujo .eq-nota { color: #3f564a; }

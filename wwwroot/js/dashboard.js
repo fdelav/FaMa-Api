@@ -13,7 +13,7 @@ const ENDPOINTS = {
 // Mapeo de enums numéricos de Status
 const MAPA_ESTADOS = {
   0: { clave: 'plantilla', color: 'var(--panel-border)' }, // 0: No enrolado / Plantilla
-  1: { clave: 'Online',        color: 'var(--ok)' },           // 1: Online / Saludable
+  1: { clave: 'online',        color: 'var(--ok)' },           // 1: Online / Saludable
   2: { clave: 'offline',   color: 'var(--offline)' },       // 2: Offline  
 };
 
@@ -53,6 +53,50 @@ function ultimoPorPc(lista) {
   return mapa;
 }
 
+// ---- Utilidades visuales ----
+
+// Umbrales solo visuales para colorear las barras (mismos que kpi-filtro.js)
+const UMBRALES = {
+  cpu: { warn: 80, crit: 98 },
+  ram: { warn: 85, crit: 95 },
+  temp: { warn: 75, crit: 85 },
+  disk: { warn: 85, crit: 95 }
+};
+const COLOR_NIVEL = { ok: 'var(--ok)', warn: 'var(--warn)', crit: 'var(--crit)' };
+const MAX_NOTIF_PANEL = 30;
+
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function nivelMetrica(clave, valor) {
+  const u = UMBRALES[clave];
+  if (!u || valor == null) return 'ok';
+  return valor >= u.crit ? 'crit' : valor >= u.warn ? 'warn' : 'ok';
+}
+
+function fechaUTC(raw) {
+  if (!raw) return null;
+  const f = new Date(/[zZ]|[+-]\d\d:\d\d$/.test(raw) ? raw : `${raw}Z`);
+  return isNaN(f) ? null : f;
+}
+
+function hace(fecha) {
+  if (!fecha) return '-';
+  const s = Math.max(0, Math.round((Date.now() - fecha.getTime()) / 1000));
+  if (s < 60) return 'hace un momento';
+  if (s < 3600) return `hace ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `hace ${Math.floor(s / 3600)} h`;
+  return `hace ${Math.floor(s / 86400)} d`;
+}
+
+function toast(texto) {
+  const t = document.createElement('div');
+  t.className = 'toast-fama';
+  t.setAttribute('role', 'status');
+  t.textContent = texto;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
 /**
  * Renderiza la fila de KPIs globales (se calculan con el último dato de cada equipo):
  *  1. Equipos conectados (online) de los enrolados
@@ -71,7 +115,6 @@ function renderKpis(reportes, equipos, estadisticas) {
   const enrolados = lista.filter(e => estadoDe(e) !== 0);   // Online + Offline
   const conectados = lista.filter(e => estadoDe(e) === 1);  // Online
 
-  const ultReporte = ultimoPorPc(reportes);
   const ultEstadistica = ultimoPorPc(estadisticas);
 
   let criticos = 0, advertencias = 0;
@@ -86,36 +129,40 @@ function renderKpis(reportes, equipos, estadisticas) {
   const hayConectados = conectados.length > 0;
   if (window.kpiFiltro) window.kpiFiltro.actualizarDatos(lista, estadisticas);
   const recurrentes = window.kpiFiltro ? window.kpiFiltro.conteo('recurrentes') : 0;
+  const sinConexion = enrolados.length - conectados.length;
 
-  let calificacion = '-';
-  let colorCal = '';
+  let calificacion = 'Sin datos', tonoCal = '', subCal = 'Aún no hay equipos conectados';
   if (hayConectados) {
-    if (criticos > 0) { calificacion = 'Crítico'; colorCal = 'var(--crit)'; }
-    else if (advertencias > 0) { calificacion = 'Advertencia'; colorCal = 'var(--warn)'; }
-    else { calificacion = 'Normal'; }
+    if (criticos > 0) { calificacion = 'Crítico'; tonoCal = 'crit'; subCal = `${criticos} equipo${criticos === 1 ? '' : 's'} requiere${criticos === 1 ? '' : 'n'} atención`; }
+    else if (advertencias > 0) { calificacion = 'Advertencia'; tonoCal = 'warn'; subCal = `${advertencias} equipo${advertencias === 1 ? '' : 's'} cerca del límite`; }
+    else { calificacion = 'Normal'; tonoCal = 'ok'; subCal = 'Todos los equipos dentro de rango'; }
   }
 
   const kpis = [
-    { label: 'Equipos conectados', value: enrolados.length > 0 ? `${conectados.length} de ${enrolados.length}` : '-' },
-    { label: 'Equipos en estado crítico', value: hayConectados ? criticos : '-', color: criticos > 0 ? 'var(--crit)' : '', filtro: 'criticos' },
-    { label: 'Equipos en advertencia', value: hayConectados ? advertencias : '-', color: advertencias > 0 ? 'var(--warn)' : '', filtro: 'advertencia' },
-    { label: 'Equipos con fallas recurrentes', value: enrolados.length > 0 ? recurrentes : '-', color: recurrentes > 0 ? 'var(--warn)' : '', filtro: 'recurrentes' },
-    { label: 'Estado de flota', value: calificacion, color: colorCal }
+    { label: 'Equipos conectados', value: enrolados.length > 0 ? `${conectados.length} de ${enrolados.length}` : '-',
+      sub: !enrolados.length ? 'Ningún equipo enrolado' : sinConexion ? `${sinConexion} sin conexión` : 'Toda la flota en línea',
+      tono: enrolados.length && sinConexion ? 'warn' : enrolados.length ? 'ok' : '' },
+    { label: 'Equipos en estado crítico', value: hayConectados ? criticos : '-', tono: criticos > 0 ? 'crit' : '', filtro: 'criticos' },
+    { label: 'Equipos en advertencia', value: hayConectados ? advertencias : '-', tono: advertencias > 0 ? 'warn' : '', filtro: 'advertencia' },
+    { label: 'Equipos con fallas recurrentes', value: enrolados.length > 0 ? recurrentes : '-', tono: recurrentes > 0 ? 'warn' : '', filtro: 'recurrentes' },
+    { label: 'Estado de flota', value: calificacion, sub: subCal, tono: tonoCal, estado: true }
   ];
 
   // El redibujado cada 5 s haría perder el foco del teclado en la tarjeta
   const filtroConFoco = document.activeElement?.dataset?.filtro;
   const filtroActivo = window.kpiFiltro ? window.kpiFiltro.activo() : null;
 
-  contenedor.innerHTML = kpis.map(k => `
-    <div class="col-6 col-md">
-      <div class="kpi${k.filtro ? ' kpi-click' : ''}${k.filtro && k.filtro === filtroActivo ? ' kpi-activo' : ''}"${k.filtro ? ` data-filtro="${k.filtro}" role="button" tabindex="0" aria-pressed="${k.filtro === filtroActivo}"` : ''}>
+  contenedor.innerHTML = kpis.map(k => {
+    const activo = k.filtro && k.filtro === filtroActivo;
+    return `
+    <div class="col-6 col-xl">
+      <div class="kpi ${k.tono || ''}${k.filtro ? ' kpi-click' : ''}${activo ? ' kpi-activo' : ''}"${k.filtro ? ` data-filtro="${k.filtro}" role="button" tabindex="0" aria-pressed="${activo}"` : ''}>
         <div class="label">${k.label}</div>
-        <div class="value mono"${k.color ? ` style="color:${k.color}"` : ''}>${k.value}</div>
-        ${k.filtro ? `<div class="ver-detalle">${k.filtro === filtroActivo ? 'Filtro activo · clic para quitar' : 'Clic para filtrar'}</div>` : ''}
+        <div class="value mono${k.estado ? ' estado' : ''}">${k.value}</div>
+        ${k.filtro ? `<div class="ver-detalle">${activo ? 'Filtro activo · clic para quitar' : 'Clic para filtrar'}</div>` : `<div class="sub">${k.sub || '&nbsp;'}</div>`}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   if (filtroConFoco) contenedor.querySelector(`[data-filtro="${filtroConFoco}"]`)?.focus();
 }
@@ -126,48 +173,59 @@ function ConseguirCheckboxSeleccionados() {
 }
 
 /**
- * Renderiza la lista basada en NotificationDto
+ * Panel de alertas sin leer (las críticas primero)
  */
 function renderNotificaciones(notificaciones) {
   const contenedor = document.getElementById('lista-notificaciones');
-  const checkboxSeleccionados = ConseguirCheckboxSeleccionados();
   if (!contenedor) return;
+  const seleccionados = ConseguirCheckboxSeleccionados();
 
-  if (!Array.isArray(notificaciones) || notificaciones.length === 0) {
-    contenedor.innerHTML = '<div class="text-muted p-2">Sin notificaciones recientes</div>';
+  const sinLeer = (Array.isArray(notificaciones) ? notificaciones : []).filter(n => !(n.isRead ?? n.IsRead));
+  const conteo = document.getElementById('conteo-notif');
+  if (conteo) conteo.textContent = sinLeer.length ? `· ${sinLeer.length}` : '';
+  const mas = document.getElementById('notif-mas');
+  if (mas) mas.hidden = sinLeer.length <= MAX_NOTIF_PANEL;
+  const btn = document.getElementById('btn-marcar-leidas');
+  if (btn) btn.disabled = sinLeer.length === 0;
+
+  if (sinLeer.length === 0) {
+    contenedor.innerHTML = '<div class="vacio"><b>Todo en orden</b>No hay alertas pendientes.</div>';
     return;
   }
 
-  contenedor.innerHTML = notificaciones.filter(n => !n.isRead).map(n => {
-    const rawType = (n.type || n.Type || 'info').toLowerCase();
-    const nivelClase = MAPA_TIPO_NOTIF[rawType] || 'ok';
-    const color = MAPA_ESTADOS[nivelClase === 'ok' ? 1 : nivelClase === 'warn' ? 3 : 3]?.color || 'var(--ok)';
-    
-    const mensaje = n.message || n.Message || 'Sin mensaje';
-    const rawFecha = n.createdAt || n.CreatedAt;
-    // Si el servidor manda la fecha sin zona horaria, se asume UTC (igual que en notificaciones.js)
-    const fechaObj = rawFecha
-      ? new Date(/[zZ]|[+-]\d\d:\d\d$/.test(rawFecha) ? rawFecha : `${rawFecha}Z`)
-      : null;
-    const hora = fechaObj && !isNaN(fechaObj)
-      ? `${fechaObj.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' })} · ${fechaObj.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`
-      : '-';
+  const peso = { crit: 0, warn: 1, ok: 2 };
+  const items = sinLeer.map(n => {
+    const nivel = MAPA_TIPO_NOTIF[String(n.type ?? n.Type ?? 'info').toLowerCase()] || 'ok';
+    return { n, nivel, fecha: fechaUTC(n.createdAt ?? n.CreatedAt) };
+  }).sort((a, b) => peso[a.nivel] - peso[b.nivel] || (b.fecha?.getTime() ?? 0) - (a.fecha?.getTime() ?? 0));
 
+  contenedor.innerHTML = items.slice(0, MAX_NOTIF_PANEL).map(({ n, nivel, fecha }) => {
+    const id = n.id ?? n.Id;
+    const abs = fecha
+      ? `${fecha.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' })} · ${fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`
+      : '-';
     return `
-      <div class="notif-item">
-        <span class="dot" style="background:${color}"></span>
-        <div>
-          <div class="msg">${mensaje}</div>
-          <div class="time mono">${hora}</div>
+      <div class="notif-item ${nivel}">
+        <span class="dot" style="background:${COLOR_NIVEL[nivel]}"></span>
+        <div class="body">
+          <div class="msg">${esc(n.message ?? n.Message ?? 'Sin mensaje')}</div>
+          <div class="time mono">${abs}<span class="rel"> · ${hace(fecha)}</span></div>
         </div>
-        <input type="checkbox" class="check" id="notif-${n.id || n.Id}" />
-      </div>
-    `;
+        <input type="checkbox" class="check" id="notif-${id}" aria-label="Seleccionar notificación" />
+      </div>`;
   }).join('');
-  checkboxSeleccionados.forEach(id => {
-    const cb = document.getElementById(`notif-${id}`);
-    if (cb) cb.checked = true;
-  });
+
+  seleccionados.forEach(id => { const cb = document.getElementById(`notif-${id}`); if (cb) cb.checked = true; });
+}
+
+function metrica(etiqueta, clave, valor, unidad) {
+  const txt = valor != null ? `${Math.round(valor)}${unidad}` : '—';
+  const pct = valor != null ? Math.min(Math.max(valor, 0), 100) : 0;
+  return `
+    <div class="m ${nivelMetrica(clave, valor)}">
+      <span>${etiqueta}</span><span class="m-v mono">${txt}</span>
+      <span class="m-bar"><i style="width:${pct}%"></i></span>
+    </div>`;
 }
 
 /**
@@ -178,7 +236,7 @@ function renderEquipos(equipos, reportes, estadisticas) {
   if (!contenedor) return;
 
   if (!Array.isArray(equipos) || equipos.length === 0) {
-    contenedor.innerHTML = '<div class="col-12 text-muted">No hay equipos registrados.</div>';
+    contenedor.innerHTML = '<div class="vacio"><b>No hay equipos registrados</b>Cuando un equipo se enrole aparecerá aquí.</div>';
     return;
   }
 
@@ -188,7 +246,7 @@ function renderEquipos(equipos, reportes, estadisticas) {
     equipos = window.kpiFiltro.filtrar(equipos);
     window.kpiFiltro.actualizarChip(equipos.length, totalEquipos);
     if (equipos.length === 0) {
-      contenedor.innerHTML = `<div class="kpi-vacio text-muted p-2">${window.kpiFiltro.mensajeVacio()}</div>`;
+      contenedor.innerHTML = `<div class="kpi-vacio">${window.kpiFiltro.mensajeVacio()}</div>`;
       return;
     }
   }
@@ -220,6 +278,9 @@ function renderEquipos(equipos, reportes, estadisticas) {
     });
   }
 
+  const conteoEq = document.getElementById('conteo-equipos');
+  if (conteoEq) conteoEq.textContent = `· ${equipos.length}`;
+
   contenedor.innerHTML = equipos.map((e, index) => {
     const id = e.id ?? e.Id;
     const hostName = e.hostName ?? e.HostName ?? '';
@@ -245,45 +306,37 @@ function renderEquipos(equipos, reportes, estadisticas) {
     const tempVal = reporteActual ? (reporteActual.temp ?? reporteActual.Temp) : null;
     const diskVal = reporteActual ? (reporteActual.diskActivity ?? reporteActual.DiskActivity) : null;
 
-    const cpuStr = cpuVal != null ? `${Math.round(cpuVal)}%` : '—';
-    const ramStr = ramVal != null ? `${Math.round(ramVal)}%` : '—';
-    const tempStr = tempVal != null ? `${Math.round(tempVal)}°C` : '—';
-    const diskStr = diskVal != null ? `${Math.round(diskVal)}%` : '—';
+    const online = status === 1;
+    let chipClase = 'offline', chipTxt = 'Sin conexión';
+    if (esPlantilla) { chipClase = ''; chipTxt = 'Sin enrolar'; }
+    else if (online) { chipClase = infoSalud.clave; chipTxt = ['Normal', 'Advertencia', 'Crítico'][saludEquipo] || 'Normal'; }
+    const claseEstado = esPlantilla ? 'plantilla' : online ? infoSalud.clave : 'offline';
 
     // Texto de última actualización
     let vistoText = 'Aún no enrolado';
     if (!esPlantilla && lastReporteFecha) {
       const fecha = new Date(lastReporteFecha);
-      const haceMasDeUnDia = Date.now() - fecha.getTime() > 24 * 60 * 60 * 1000;
-      if (!haceMasDeUnDia) {
-        vistoText = `Reportó: ${fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
-      } else {
-        const ayer = new Date();
-        ayer.setDate(ayer.getDate() - 1);
-        const esAyer = fecha.getFullYear() === ayer.getFullYear()
-          && fecha.getMonth() === ayer.getMonth()
-          && fecha.getDate() === ayer.getDate();
-        const fechaText = esAyer
-          ? 'Ayer'
-          : fecha.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' });
-        vistoText = `Reportó: ${fechaText}`;
-      }
+      vistoText = Date.now() - fecha.getTime() < 24 * 3600 * 1000
+        ? `Reportó ${fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`
+        : `Reportó ${fecha.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' })}`;
     }
+    const ip = e.ipAddress || e.IpAddress || 'N/A';
+    const mac = e.macAddress || e.MacAddress || 'N/A';
 
     return `
-      <div class="equipo ${infoEstado.clave} ${infoSalud.clave}">
+      <div class="equipo ${claseEstado}" data-id="${id}">
         <div class="fila-superior">
-          <span class="host mono" title="IP: ${e.ipAddress || e.IpAddress || 'N/A'} | MAC: ${e.macAddress || e.MacAddress || 'N/A'}">${host}</span>
-          <span class="estado-dot" style="background:${infoSalud.color}"></span>
+          <span class="host mono" title="IP: ${esc(ip)} | MAC: ${esc(mac)}">${esc(host)}</span>
+          <span class="chip ${chipClase}">${chipTxt}</span>
         </div>
         <div class="metricas">
-          <div>CPU<span class="num mono">${cpuStr}</span></div>
-          <div>RAM<span class="num mono">${ramStr}</span></div>
-          <div>Temp<span class="num mono">${tempStr}</span></div>
-          <div>Disco<span class="num mono">${diskStr}</span></div>
+          ${metrica('CPU', 'cpu', cpuVal, '%')}
+          ${metrica('RAM', 'ram', ramVal, '%')}
+          ${metrica('Temperatura', 'temp', tempVal, '°C')}
+          ${metrica('Disco', 'disk', diskVal, '%')}
         </div>
         ${window.kpiFiltro ? window.kpiFiltro.nota(id) : ''}
-        <div class="visto">${vistoText}</div>
+        <div class="visto"><span>${vistoText}</span><span class="mono">${esc(ip)}</span></div>
       </div>
     `;
   }).join('');
@@ -385,12 +438,11 @@ async function markAsRead() {
   }
 
   const selectedIds = ConseguirCheckboxSeleccionados();
-  const confirmed = confirm(`¿Está seguro de marcar ${selectedIds.length} notificación(es) como leída(s)?`) || selectedIds.length === 0;
-  if (!confirmed) return;
   if (selectedIds.length === 0) {
-    alert("Seleccione al menos una notificación para marcar como leída.");
+    toast('Selecciona al menos una alerta con la casilla de la derecha.');
     return;
   }
+  if (!confirm(`¿Marcar ${selectedIds.length} alerta(s) como leída(s)?`)) return;
 
   try {
     const res = await fetch(`${ENDPOINTS.notifications}/read-batch`, {
@@ -407,10 +459,10 @@ async function markAsRead() {
       cargarDatos(token); // Recargar notificaciones
     } else {
       console.error("Error al marcar notificaciones como leídas:", res.status, await res.text());
-      alert("Error al marcar notificaciones como leídas. Revise la consola para más detalles.");
+      toast("No se pudieron marcar las alertas. Intenta de nuevo.");
     }
   } catch (err) {
     console.error("Error de red al marcar notificaciones como leídas:", err);
-    alert("Error de red al marcar notificaciones como leídas. Revise la consola para más detalles.");
+    toast("Error de red al marcar las alertas.");
   }
 }
