@@ -22,6 +22,8 @@
     <PackageReference Include="Scalar.AspNetCore" Version="2.17.7" />
     <None CopyToPublishDirectory="Always" Include="instalar.ps1"/>
     <None CopyToPublishDirectory="Always" Include="desinstalar.ps1"/>
+    <None CopyToPublishDirectory="Always" Include="instalar-admin.ps1"/>
+    <None CopyToPublishDirectory="Always" Include="desinstalar-admin.ps1"/>
   </ItemGroup>
 
 </Project>
