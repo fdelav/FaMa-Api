@@ -33,19 +33,6 @@ El archivo base contiene la configuración por defecto de desarrollo:
 
     Nota: En entornos de producción, la configuración se sobreescribe mediante appsettings.Production.json generado automáticamente por el script de instalación para preservar credenciales sin pisar los binarios base.
 
-## Publicación y Despliegue
-Importante sobre los scripts PowerShell (.ps1)
-
-Al compilar o generar el paquete de publicación (dotnet publish), asegúrate de incluir los archivos .ps1 (instalar.ps1 y desinstalar.ps1) dentro de la carpeta final del paquete distribuible.
-
-Puedes lograrlo configurando tu archivo .csproj para que los copie automáticamente en cada publicación:
-XML
-
-<ItemGroup>
-  <None CopyToPublishDirectory="Always" Include="instalar.ps1"/>
-  <None CopyToPublishDirectory="Always" Include="desinstalar.ps1"/>
-</ItemGroup>
-
 ## Instalación como Servicio de Windows
 
 Para desplegar la API en un servidor Windows como un servicio persistente de fondo (FaMaApi):
