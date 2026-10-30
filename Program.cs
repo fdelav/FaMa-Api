@@ -19,6 +19,9 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Seed the root user
+app.SeedRootUserAsync().Wait();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -46,6 +49,7 @@ app.MapClientComputerEndpoints();
 app.MapClientStatisticsEndpoint();
 app.MapNotificationEndpoints();
 app.MapUserFormEndpoint();
+app.MapEquipoDetalleEndpoints();
 app.MapDownloadDataEndpoints();
 
 app.UseDefaultFiles();

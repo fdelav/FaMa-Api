@@ -87,7 +87,7 @@ public class EstadisticasWorker : BackgroundService
                                         newNotifications.Add(new Notification
                                         {
                                             PcId = clientComputer.Id,
-                                            Type = "HardwareAlert",
+                                            Type = "error",
                                             Message = $"El equipo {clientComputer.HostName} entró en estado CRÍTICO (Temp Max: {stat.TempMax:F1}°C, CPU Max: {stat.CpuMax:F1}%).",
                                             CreatedAt = DateTime.UtcNow
                                         });

@@ -1,0 +1,45 @@
+/* FaMa · login — reutiliza las variables y componentes de style.css */
+/* Fondo verde del dashboard (#185028); los fallbacks evitan que se vea blanco si falta la variable */
+body { background: var(--page, #185028); color: var(--text, #eef4ea); }
+
+.login-wrap {
+  min-height: calc(100vh - 68px); /* alto de la cabecera */
+  display: grid; place-items: center; padding: 1.5rem;
+}
+
+.login-card { width: min(420px, 100%); position: relative; overflow: hidden; }
+.login-card::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--nav-green); }
+.login-card > .panel-title { padding-top: 1rem; }
+.login-body { padding: 1.4rem 1.2rem 1.3rem; }
+
+.login-card .form-label { color: var(--muted); font-size: .82rem; font-weight: 500; margin-bottom: .35rem; }
+.login-card .form-control {
+  background: var(--bg-2); border: 1px solid var(--panel-border); border-radius: 8px;
+  color: var(--text); padding: .65rem .8rem; font-size: .92rem;
+}
+.login-card .form-control:focus {
+  background: var(--bg-2); color: var(--text);
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(214, 233, 75, .15);
+}
+.login-card .form-control:-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  box-shadow: 0 0 0 1000px var(--bg-2) inset;
+}
+
+.login-card .btn { width: 100%; padding: .65rem; font-size: .9rem; margin-top: .2rem; }
+.login-card .btn-primary {
+  --bs-btn-bg: #1e6b3a; --bs-btn-border-color: #1e6b3a; --bs-btn-color: #fff;
+  --bs-btn-hover-bg: #26834a; --bs-btn-hover-border-color: #26834a; --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: #175a30; --bs-btn-active-border-color: #175a30; --bs-btn-active-color: #fff;
+  --bs-btn-focus-shadow-rgb: 38, 131, 74;
+}
+
+.login-error {
+  background: var(--crit-bg); color: var(--crit); border: 1px solid rgba(240, 103, 92, .45);
+  border-radius: 8px; font-size: .82rem; font-weight: 500; padding: .5rem .75rem; margin-bottom: .8rem;
+}
+.login-error:empty { display: none; }
+
+@media (max-width: 767px) {
+  .login-wrap { min-height: calc(100vh - 62px); padding: 1rem; }
+}
