@@ -443,12 +443,38 @@
     const scrollNotif = elGrid.querySelector('.eq-notif-lista')?.scrollTop || 0;
     const scrollTabla = elGrid.querySelector('.eq-scroll')?.scrollTop || 0; // el refresco no debe reiniciar el scroll interno
     elGrid.innerHTML = `
-      <section class="eq-card"><h3 class="eq-title">Información del equipo</h3><dl class="eq-info">${info}</dl></section>
-      <section class="eq-card"><h3 class="eq-title">Métricas actuales</h3>${metricas}</section>
-      <section class="eq-card ancha"><h3 class="eq-title">Historial reciente</h3>${grafico(reportes)}</section>
-      <section class="eq-card"><h3 class="eq-title">Estadísticas (cálculo del servidor)</h3>${estHtml}</section>
-      <section class="eq-card"><h3 class="eq-title">Notificaciones del equipo${notifVentana ? ` · últimos ${VENTANA_NOTIF_DIAS} días` : ''}</h3>${notifs}</section>
-      <section class="eq-card ancha"><h3 class="eq-title">Datos que está enviando · hoy</h3>${tabla}</section>`;
+      <section class="eq-card c4">
+        <h3 class="eq-title">Información del equipo</h3>
+        <dl class="eq-info">${info}</dl>
+      </section>
+
+      <section class="eq-card c4">
+        <h3 class="eq-title">Métricas actuales</h3>
+        ${metricas}
+      </section>
+
+      
+      <section class="eq-card c4 md-12">
+        <h3 class="eq-title">Estadísticas (cálculo del servidor)</h3>
+        ${estHtml}
+      </section>
+
+      
+      <section class="eq-card ancha">
+        <h3 class="eq-title">Historial reciente</h3>
+        ${grafico(reportes)}
+      </section>
+
+      <section class="eq-card">
+        <h3 class="eq-title">Notificaciones del equipo${notifVentana ? ` · últimos ${VENTANA_NOTIF_DIAS} días` : ''}</h3>
+        ${notifs}
+      </section>
+
+      <section class="eq-card ancha">
+        <h3 class="eq-title">Datos que está enviando · hoy</h3>
+        ${tabla}
+      </section>`;
+
     const nuevaTabla = elGrid.querySelector('.eq-scroll');
     if (nuevaTabla) nuevaTabla.scrollTop = scrollTabla;
     const nuevaNotif = elGrid.querySelector('.eq-notif-lista');
