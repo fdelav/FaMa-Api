@@ -88,6 +88,21 @@ function hace(fecha) {
   return `hace ${Math.floor(s / 86400)} d`;
 }
 
+/**
+ * Escribe HTML en un contenedor sin que el refresco de 5 s mueva la vista:
+ *  - si el HTML es idéntico al anterior, no toca el DOM
+ *  - conserva el scroll de la página y el del propio contenedor
+ * Todo el HTML de #fila-kpis, #grid-equipos y #lista-notificaciones debe pasar por aquí.
+ */
+function pintar(el, html) {
+  if (el.__htmlPrevio === html) return;
+  el.__htmlPrevio = html;
+  const x = window.scrollX, y = window.scrollY, top = el.scrollTop;
+  el.innerHTML = html;
+  if (el.scrollTop !== top) el.scrollTop = top;
+  if (window.scrollX !== x || window.scrollY !== y) window.scrollTo(x, y);
+}
+
 function toast(texto) {
   const t = document.createElement('div');
   t.className = 'toast-fama';
@@ -152,7 +167,7 @@ function renderKpis(reportes, equipos, estadisticas) {
   const filtroConFoco = document.activeElement?.dataset?.filtro;
   const filtroActivo = window.kpiFiltro ? window.kpiFiltro.activo() : null;
 
-  contenedor.innerHTML = kpis.map(k => {
+  pintar(contenedor, kpis.map(k => {
     const activo = k.filtro && k.filtro === filtroActivo;
     return `
     <div class="col-6 col-xl">
@@ -162,9 +177,10 @@ function renderKpis(reportes, equipos, estadisticas) {
         ${k.filtro ? `<div class="ver-detalle">${activo ? 'Filtro activo · clic para quitar' : 'Clic para filtrar'}</div>` : `<div class="sub">${k.sub || '&nbsp;'}</div>`}
       </div>
     </div>`;
-  }).join('');
+  }).join(''));
 
-  if (filtroConFoco) contenedor.querySelector(`[data-filtro="${filtroConFoco}"]`)?.focus();
+  // preventScroll: sin esto, focus() sube la página hasta los KPIs en cada refresco
+  if (filtroConFoco) contenedor.querySelector(`[data-filtro="${filtroConFoco}"]`)?.focus({ preventScroll: true });
 }
 
 function ConseguirCheckboxSeleccionados() {
@@ -189,7 +205,7 @@ function renderNotificaciones(notificaciones) {
   if (btn) btn.disabled = sinLeer.length === 0;
 
   if (sinLeer.length === 0) {
-    contenedor.innerHTML = '<div class="vacio"><b>Todo en orden</b>No hay alertas pendientes.</div>';
+    pintar(contenedor, '<div class="vacio"><b>Todo en orden</b>No hay alertas pendientes.</div>');
     return;
   }
 
@@ -199,7 +215,7 @@ function renderNotificaciones(notificaciones) {
     return { n, nivel, fecha: fechaUTC(n.createdAt ?? n.CreatedAt) };
   }).sort((a, b) => peso[a.nivel] - peso[b.nivel] || (b.fecha?.getTime() ?? 0) - (a.fecha?.getTime() ?? 0));
 
-  contenedor.innerHTML = items.slice(0, MAX_NOTIF_PANEL).map(({ n, nivel, fecha }) => {
+  pintar(contenedor, items.slice(0, MAX_NOTIF_PANEL).map(({ n, nivel, fecha }) => {
     const id = n.id ?? n.Id;
     const abs = fecha
       ? `${fecha.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' })} · ${fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`
@@ -213,7 +229,7 @@ function renderNotificaciones(notificaciones) {
         </div>
         <input type="checkbox" class="check" id="notif-${id}" aria-label="Seleccionar notificación" />
       </div>`;
-  }).join('');
+  }).join(''));
 
   seleccionados.forEach(id => { const cb = document.getElementById(`notif-${id}`); if (cb) cb.checked = true; });
 }
@@ -236,7 +252,7 @@ function renderEquipos(equipos, reportes, estadisticas) {
   if (!contenedor) return;
 
   if (!Array.isArray(equipos) || equipos.length === 0) {
-    contenedor.innerHTML = '<div class="vacio"><b>No hay equipos registrados</b>Cuando un equipo se enrole aparecerá aquí.</div>';
+    pintar(contenedor, '<div class="vacio"><b>No hay equipos registrados</b>Cuando un equipo se enrole aparecerá aquí.</div>');
     return;
   }
 
@@ -246,7 +262,7 @@ function renderEquipos(equipos, reportes, estadisticas) {
     equipos = window.kpiFiltro.filtrar(equipos);
     window.kpiFiltro.actualizarChip(equipos.length, totalEquipos);
     if (equipos.length === 0) {
-      contenedor.innerHTML = `<div class="kpi-vacio">${window.kpiFiltro.mensajeVacio()}</div>`;
+      pintar(contenedor, `<div class="kpi-vacio">${window.kpiFiltro.mensajeVacio()}</div>`);
       return;
     }
   }
@@ -281,7 +297,7 @@ function renderEquipos(equipos, reportes, estadisticas) {
   const conteoEq = document.getElementById('conteo-equipos');
   if (conteoEq) conteoEq.textContent = `· ${equipos.length}`;
 
-  contenedor.innerHTML = equipos.map((e, index) => {
+  pintar(contenedor, equipos.map((e, index) => {
     const id = e.id ?? e.Id;
     const hostName = e.hostName ?? e.HostName ?? '';
     const status = e.status ?? e.Status ?? 0;
@@ -339,7 +355,7 @@ function renderEquipos(equipos, reportes, estadisticas) {
         <div class="visto"><span>${vistoText}</span><span class="mono">${esc(ip)}</span></div>
       </div>
     `;
-  }).join('');
+  }).join(''));
 }
 
 function actualizarReloj() {
